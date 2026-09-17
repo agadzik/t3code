@@ -1,8 +1,0 @@
-{
-  "name": "@t3tools/fx-runner-sandbox",
-  "private": true,
-  "type": "module",
-  "dependencies": {
-    "libfx": "0.0.10"
-  }
-}
