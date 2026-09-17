@@ -244,7 +244,7 @@ interface WslPreflightSuccess {
   readonly windowsEntryPath: string;
   readonly runtime: WslPreflightRuntime;
   // PATH captured from the user's login shell. The launch forwards this value
-  // directly without a shell so the server can spawn provider CLIs by name.
+  // directly without a shell so the server can spawn provider CLIs.
   readonly resolvedPath: string;
   // Identifies the distro-local runtime cache selected from the packaged archive.
   readonly runtimeId?: string;

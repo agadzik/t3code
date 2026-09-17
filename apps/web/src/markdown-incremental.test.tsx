@@ -7,7 +7,7 @@ import remarkGfm from "remark-gfm";
 import type { Plugin } from "unified";
 import { describe, expect, it } from "vite-plus/test";
 
-import { remarkCodexDirectives } from "@t3tools/client-runtime/codex-markdown-directives";
+import { remarkFileCitationDirectives } from "@t3tools/client-runtime/file-citation-markdown-directives";
 import { remarkGithubAlerts } from "./markdown-github-alerts";
 import { createIncrementalMarkdownPlugin } from "./markdown-incremental";
 import { remarkNormalizeListItemIndentation } from "./markdown-list-indentation";
@@ -34,7 +34,7 @@ function render(source: string, incremental?: Plugin<[], Root>, parsedSources?: 
         remarkGfm,
         remarkGithubAlerts,
         remarkNormalizeListItemIndentation,
-        remarkCodexDirectives,
+        remarkFileCitationDirectives,
         ...(incremental ? [incremental] : []),
       ]}
       rehypePlugins={[rehypeRaw, rehypeSanitize]}

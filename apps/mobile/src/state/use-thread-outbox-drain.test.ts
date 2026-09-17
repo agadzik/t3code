@@ -669,7 +669,7 @@ describe("thread outbox recovery rollback", () => {
   it("restores a rejected new task as its own draft for the project", async () => {
     const message: QueuedThreadMessage = {
       ...queuedMessage({ messageId: "message-creation-restore", text: "new task text" }),
-      modelSelection: { instanceId: ProviderInstanceId.make("codex"), model: "gpt-5.6-sol" },
+      modelSelection: { instanceId: ProviderInstanceId.make("testDriver"), model: "gpt-5.6-sol" },
       creation: {
         projectId: ProjectId.make("project-1"),
         workspaceMode: "local",
@@ -710,7 +710,7 @@ describe("thread outbox recovery rollback", () => {
   it("keeps a failed outcome until its thread screen consumes it", async () => {
     const message: QueuedThreadMessage = {
       ...queuedMessage({ messageId: "message-creation-kept", text: "new task text" }),
-      modelSelection: { instanceId: ProviderInstanceId.make("codex"), model: "gpt-5.6-sol" },
+      modelSelection: { instanceId: ProviderInstanceId.make("testDriver"), model: "gpt-5.6-sol" },
       creation: {
         projectId: ProjectId.make("project-1"),
         workspaceMode: "local",

@@ -244,7 +244,10 @@ describe("host context compatibility", () => {
             messageId: "message",
             createdAt: "2026-01-01T00:00:00Z",
             uploadedAttachments: [],
-            modelSelection: { instanceId: ProviderInstanceId.make("codex"), model: "gpt-5.6-sol" },
+            modelSelection: {
+              instanceId: ProviderInstanceId.make("testDriver"),
+              model: "gpt-5.6-sol",
+            },
             runtimeMode: "full-access",
             interactionMode: "default",
             workspaceMode: "local",

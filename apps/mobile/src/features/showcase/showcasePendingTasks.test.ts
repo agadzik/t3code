@@ -14,7 +14,7 @@ const projects: ReadonlyArray<EnvironmentProject> = [
     title: "T3 Code",
     workspaceRoot: "/workspace/t3code",
     repositoryIdentity: null,
-    defaultModelSelection: { instanceId: ProviderInstanceId.make("codex"), model: "gpt-5.4" },
+    defaultModelSelection: { instanceId: ProviderInstanceId.make("testDriver"), model: "gpt-5.4" },
     scripts: [],
     createdAt: "2026-07-16T08:00:00.000Z",
     updatedAt: "2026-07-16T08:00:00.000Z",

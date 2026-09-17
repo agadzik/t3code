@@ -26,8 +26,8 @@ const limits = { checkedAt, windows: [window] };
 const deepLink = "t3code-dev://settings/usage?tab=limits";
 function provider(overrides: Partial<ServerProvider> = {}): ServerProvider {
   return {
-    instanceId: ProviderInstanceId.make("codex"),
-    driver: ProviderDriverKind.make("codex"),
+    instanceId: ProviderInstanceId.make("testDriver"),
+    driver: ProviderDriverKind.make("testDriver"),
     enabled: true,
     installed: true,
     version: null,
@@ -58,7 +58,7 @@ describe("subscription widget snapshots", () => {
     );
     expect(snapshot.checkedAt).toBe(now);
     expect(snapshot.providers[0]).toMatchObject({
-      name: "Codex",
+      name: "testDriver",
       windows: [{ remaining: 60 }],
       expiresAt: now + 10 * 60_000,
     });
@@ -95,7 +95,7 @@ describe("subscription widget snapshots", () => {
                 accounts: [
                   {
                     id: "account",
-                    driver: ProviderDriverKind.make("codex"),
+                    driver: ProviderDriverKind.make("testDriver"),
                     email: " PRIVATE@example.com ",
                     usageLimits: limits,
                   },
@@ -111,7 +111,7 @@ describe("subscription widget snapshots", () => {
     );
     input.get(EnvironmentId.make("env"))!.serverConfig.providers = [];
     const snapshot = buildSubscriptionUsageSnapshot(input, deepLink);
-    expect(snapshot.providers[0]?.name).toBe("Codex");
+    expect(snapshot.providers[0]?.name).toBe("testDriver");
     expect(JSON.stringify(snapshot)).not.toContain("example.com");
   });
   it("keeps unavailable quotas distinct from zero usage and omits provider error messages", () => {
@@ -126,7 +126,7 @@ describe("subscription widget snapshots", () => {
       ]),
       deepLink,
     );
-    expect(snapshot.providers[0]?.windows).toEqual([]);
+    expect(snapshot.providers).toEqual([]);
     expect(JSON.stringify(snapshot)).not.toContain("token secret");
     expect(
       buildSubscriptionUsageSnapshot(
@@ -173,8 +173,8 @@ describe("subscription widget snapshots", () => {
       presentations([
         provider(),
         provider({
-          instanceId: ProviderInstanceId.make("claude"),
-          driver: ProviderDriverKind.make("claudeAgent"),
+          instanceId: ProviderInstanceId.make("otherDriver"),
+          driver: ProviderDriverKind.make("otherDriver"),
           usageLimits: { checkedAt, windows: [{ ...window, resetsAt: undefined }] },
         }),
       ]),

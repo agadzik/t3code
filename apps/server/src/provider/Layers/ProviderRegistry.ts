@@ -80,7 +80,7 @@ const hasModelCapabilities = (model: ServerProvider["models"][number]): boolean 
 
 const MAX_WORKSPACE_SNAPSHOTS_PER_PROVIDER = 16;
 
-export function upsertProviderWorkspaceSnapshot(
+function upsertProviderWorkspaceSnapshot(
   provider: ServerProvider,
   cwd: string,
   scopedSnapshot: ServerProvider,
@@ -100,48 +100,17 @@ export function upsertProviderWorkspaceSnapshot(
   };
 }
 
-const shouldRetainMissingProviderModels = (provider: ServerProvider): boolean => {
-  const isAntigravity = provider.driver === ProviderDriverKind.make("antigravity");
-  const isCodex = provider.driver === ProviderDriverKind.make("codex");
-  if (!isAntigravity && !isCodex && provider.driver !== ProviderDriverKind.make("opencode")) {
-    return true;
-  }
-
-  if (
-    (isAntigravity || isCodex) &&
-    (!provider.enabled || provider.auth.status === "unauthenticated")
-  ) {
-    return false;
-  }
-
-  // Successful discovery replaces these inventories so cached retired models disappear.
-  // Antigravity's local health check does not authenticate or discover models.
-  const isPendingAntigravityAuthentication =
-    isAntigravity && provider.status === "warning" && provider.auth.status === "unknown";
-  const isPendingInitialProbe =
-    provider.enabled && !provider.installed && provider.status === "warning";
-  const didInstalledProviderProbeFail = provider.installed && provider.status === "error";
-  return (
-    isPendingAntigravityAuthentication || isPendingInitialProbe || didInstalledProviderProbeFail
-  );
-};
-
-const shouldRetainMissingOpenCodeMetadata = (provider: ServerProvider): boolean =>
-  provider.driver === ProviderDriverKind.make("opencode") &&
-  shouldRetainMissingProviderModels(provider);
-
+// A model list that legitimately shrinks between snapshots (a failed probe, a
+// retired model) must not resurrect stale rows. Custom rows are derived from
+// settings, so a missing custom row was removed by the user and is never
+// resurrected.
 const mergeProviderModels = (
-  provider: ServerProvider,
   previousModels: ReadonlyArray<ServerProvider["models"][number]>,
   nextModels: ReadonlyArray<ServerProvider["models"][number]>,
 ): ReadonlyArray<ServerProvider["models"][number]> => {
-  const shouldRetainMissingModels = shouldRetainMissingProviderModels(provider);
-  // Custom rows are derived from settings and every snapshot carries the full
-  // current list, so a custom model missing from `nextModels` was removed by
-  // the user and must not be resurrected from the previous snapshot.
   const retainablePreviousModels = previousModels.filter((model) => !model.isCustom);
 
-  if (shouldRetainMissingModels && nextModels.length === 0 && retainablePreviousModels.length > 0) {
+  if (nextModels.length === 0 && retainablePreviousModels.length > 0) {
     return retainablePreviousModels;
   }
 
@@ -157,72 +126,27 @@ const mergeProviderModels = (
     };
   });
   const nextSlugs = new Set(nextModels.map((model) => model.slug));
-  return shouldRetainMissingModels
-    ? [...mergedModels, ...retainablePreviousModels.filter((model) => !nextSlugs.has(model.slug))]
-    : mergedModels;
+  return [
+    ...mergedModels,
+    ...retainablePreviousModels.filter((model) => !nextSlugs.has(model.slug)),
+  ];
 };
 
-/**
- * Antigravity's health check only initializes the agent, so after a server
- * restart it reports the account as unchecked. The saved Google login still
- * works, and the previous snapshot proves it. Carry that account state until
- * a session, refresh, or sign-out reports something new. A confirmed missing
- * installation, sign-out, disabled instance, or a changed sign-in method is
- * never overridden.
- */
-const carrySavedAntigravityAccount = (
-  previousProvider: ServerProvider,
-  nextProvider: ServerProvider,
-): Pick<ServerProvider, "auth" | "status"> | undefined => {
-  const antigravity = ProviderDriverKind.make("antigravity");
-  if (
-    nextProvider.driver !== antigravity ||
-    previousProvider.driver !== antigravity ||
-    !nextProvider.enabled ||
-    nextProvider.auth.status !== "unknown" ||
-    previousProvider.auth.status !== "authenticated" ||
-    (nextProvider.auth.type !== undefined &&
-      nextProvider.auth.type !== previousProvider.auth.type) ||
-    (!nextProvider.installed && nextProvider.status !== "warning")
-  ) {
-    return undefined;
-  }
-  // The pending boot probe (`installed: false`, warning) and a failed probe
-  // keep their own status; only a passed health check reads as ready.
-  const status =
-    nextProvider.installed && nextProvider.status === "warning" ? "ready" : nextProvider.status;
-  return { auth: previousProvider.auth, status };
-};
-
-export const mergeProviderSnapshot = (
+const mergeProviderSnapshot = (
   previousProvider: ServerProvider | undefined,
   nextProvider: ServerProvider,
 ): ServerProvider => {
   if (!previousProvider) {
     return nextProvider;
   }
-  const savedAccount = carrySavedAntigravityAccount(previousProvider, nextProvider);
-  // "Google account access is not checked yet" describes the probe, not the
-  // account; it must not outlive the state it explained.
-  const { message: _uncheckedMessage, ...nextWithoutMessage } = nextProvider;
   return {
-    ...(savedAccount?.status === "ready" ? nextWithoutMessage : nextProvider),
-    ...savedAccount,
-    models: mergeProviderModels(nextProvider, previousProvider.models, nextProvider.models),
+    ...nextProvider,
+    models: mergeProviderModels(previousProvider.models, nextProvider.models),
     ...(nextProvider.workspaceSnapshots !== undefined
       ? { workspaceSnapshots: nextProvider.workspaceSnapshots }
       : previousProvider.workspaceSnapshots !== undefined
         ? { workspaceSnapshots: previousProvider.workspaceSnapshots }
         : {}),
-    ...(shouldRetainMissingOpenCodeMetadata(nextProvider)
-      ? {
-          slashCommands:
-            nextProvider.slashCommands.length === 0
-              ? previousProvider.slashCommands
-              : nextProvider.slashCommands,
-          skills: nextProvider.skills.length === 0 ? previousProvider.skills : nextProvider.skills,
-        }
-      : {}),
   };
 };
 

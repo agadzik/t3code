@@ -1,5 +1,4 @@
 import {
-  ANTIGRAVITY_DEFAULT_MODEL,
   type AssetCreateUrlInput,
   type AssetCreateUrlResult,
   type ChatFileAttachment,
@@ -26,11 +25,7 @@ import {
   type AtomCommandResult,
 } from "@t3tools/client-runtime/state/runtime";
 import { videoMimeType } from "@t3tools/shared/video";
-import {
-  appendCodexArtifactTemplateUsePrompt,
-  codexArtifactTemplateUsePrompt,
-  type CodexArtifactTemplate,
-} from "@t3tools/client-runtime/codex-artifact-templates";
+
 import {
   type ChatMessage,
   isImageAttachment,
@@ -191,15 +186,6 @@ export function resolveProactiveTurnDiffAction(input: {
     0,
   );
   return input.checkpoint.files.length >= 3 || changedLines >= 50 ? "open" : "ignore";
-}
-
-export function codexArtifactTemplatePromptToAppend(
-  currentDraft: string,
-  template: CodexArtifactTemplate,
-): string | null {
-  return appendCodexArtifactTemplateUsePrompt(currentDraft, template) === currentDraft
-    ? null
-    : codexArtifactTemplateUsePrompt(template);
 }
 
 export function shouldDockDraftHeroForSubmission(input: {
@@ -573,11 +559,9 @@ export function resolveComposerProviderSelection(input: {
     ? (input.entries.find((entry) => entry.instanceId === input.lockedInstanceId)
         ?.continuationGroupKey ?? null)
     : null;
-  // Missing metadata must not move Antigravity history into another Google profile.
+  // A locked instance with no continuation group must not jump to a sibling instance.
   const requiresExactInstance =
-    input.lockedProvider === "antigravity" &&
-    input.lockedInstanceId != null &&
-    lockedContinuationGroupKey === null;
+    input.lockedInstanceId != null && lockedContinuationGroupKey === null;
   const compatibleEntries = input.entries.filter(
     (entry) =>
       (!input.lockedProvider || entry.driverKind === input.lockedProvider) &&
@@ -624,42 +608,6 @@ export function resolveComposerInteractionMode(input: {
     enabled,
     interactionMode: enabled ? input.interactionMode : "default",
   };
-}
-
-export function getAntigravitySendBlockReason(
-  provider:
-    | Pick<ServerProvider, "driver" | "installed" | "auth" | "models" | "status">
-    | null
-    | undefined,
-  model: string,
-): string | null {
-  if (provider?.driver !== "antigravity") return null;
-  if (!provider.installed) {
-    return "Install Antigravity in provider settings before sending.";
-  }
-  if (provider.auth.status === "unauthenticated") {
-    return "Sign in to Antigravity in provider settings before sending.";
-  }
-  const slug = model.trim();
-  if (slug.length === 0) return "Choose an Antigravity model before sending.";
-  // A restart clears the account status and catalog. Session startup checks
-  // saved credentials and validates the model before sending the prompt.
-  if (provider.auth.status === "unknown") return null;
-  if (provider.models.length === 0) {
-    return "Refresh Antigravity models in provider settings before sending.";
-  }
-  // A saved model that left the catalog is kept in the picker as unavailable
-  // so the user sees what the thread used. The server rejects it at turn
-  // start, so block here unless the provider is in an error state, where a
-  // retry with the same model is the right move.
-  if (
-    provider.status === "ready" &&
-    slug !== ANTIGRAVITY_DEFAULT_MODEL &&
-    !provider.models.some((entry) => entry.slug === slug || entry.aliases?.includes(slug))
-  ) {
-    return "That Antigravity model is no longer available. Choose another model.";
-  }
-  return null;
 }
 
 export function buildRunningThreadTurnInterruptInput(

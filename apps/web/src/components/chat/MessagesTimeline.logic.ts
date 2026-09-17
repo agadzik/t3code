@@ -2,7 +2,7 @@ import { worktreeSetupAgentStarted } from "@t3tools/client-runtime/worktree-setu
 export { worktreeSetupAgentStarted } from "@t3tools/client-runtime/worktree-setup";
 import * as Equal from "effect/Equal";
 import { shallow } from "zustand/vanilla/shallow";
-import { renderCodexDirectivesForCopy } from "@t3tools/client-runtime/codex-markdown-directives";
+import { renderFileCitationDirectivesForCopy } from "@t3tools/client-runtime/file-citation-markdown-directives";
 import { commandProgramName } from "@t3tools/client-runtime/work-log/command-label";
 import {
   liveActivityToolStatus,
@@ -503,7 +503,7 @@ export function resolveAssistantMessageCopyState({
   const hasText = text !== null && text.trim().length > 0;
   const visible = showCopyButton && hasText && !streaming;
   return {
-    text: hasText ? (visible ? renderCodexDirectivesForCopy(text) : text) : null,
+    text: hasText ? (visible ? renderFileCitationDirectivesForCopy(text) : text) : null,
     visible,
   };
 }

@@ -57,7 +57,7 @@ function savedOptionLabel(id: string): string {
   );
 }
 
-/** Read-only descriptors for saved values whose OpenCode model metadata is unavailable. */
+/** Read-only descriptors for saved values whose model metadata is unavailable. */
 export function buildUnavailableModelOptionDescriptors(
   selections: ProviderOptions | null | undefined,
 ): ReadonlyArray<ProviderOptionDescriptor> {
@@ -143,9 +143,9 @@ function getSelectedTraits(
   planModeEnabled: boolean,
 ) {
   const caps = getProviderModelCapabilities(models, model, provider, planModeEnabled);
-  const modelIsUnavailable =
-    provider === "opencode" &&
-    !models.some((candidate) => candidate.slug === normalizeModelSlug(model, provider));
+  const modelIsUnavailable = !models.some(
+    (candidate) => candidate.slug === normalizeModelSlug(model),
+  );
   const descriptors = modelIsUnavailable
     ? buildUnavailableModelOptionDescriptors(
         planModeEnabled

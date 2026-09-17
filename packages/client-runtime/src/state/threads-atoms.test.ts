@@ -61,7 +61,7 @@ const THREAD: OrchestrationThread = {
   id: THREAD_ID,
   projectId: ProjectId.make("project-1"),
   title: "Cached thread",
-  modelSelection: { instanceId: ProviderInstanceId.make("codex"), model: "ModelA" },
+  modelSelection: { instanceId: ProviderInstanceId.make("testDriver"), model: "ModelA" },
   runtimeMode: "full-access",
   interactionMode: "default",
   branch: "main",

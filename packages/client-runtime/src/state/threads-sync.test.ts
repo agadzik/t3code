@@ -62,7 +62,7 @@ const BASE_THREAD: OrchestrationThread = {
   projectId: ProjectId.make("project-1"),
   title: "Cached thread",
   modelSelection: {
-    instanceId: ProviderInstanceId.make("codex"),
+    instanceId: ProviderInstanceId.make("testDriver"),
     model: "gpt-5.4",
   },
   runtimeMode: "full-access",
@@ -96,7 +96,7 @@ const ACTIVE_THREAD: OrchestrationThread = {
   session: {
     threadId: THREAD_ID,
     status: "running",
-    providerName: "codex",
+    providerName: "testDriver",
     runtimeMode: "full-access",
     activeTurnId: TurnId.make("turn-1"),
     lastError: null,
@@ -342,7 +342,7 @@ const sessionSet = (
       session: {
         threadId: THREAD_ID,
         status,
-        providerName: "codex",
+        providerName: "testDriver",
         runtimeMode: "full-access",
         activeTurnId: status === "running" ? TurnId.make(turnId) : null,
         lastError: null,

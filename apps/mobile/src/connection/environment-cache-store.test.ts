@@ -90,7 +90,7 @@ describe("mobile SQLite environment cache store", () => {
             id: ThreadId.make("thread-1"),
             projectId: ProjectId.make("project-1"),
             title: "Thread",
-            modelSelection: { instanceId: ProviderInstanceId.make("codex"), model: "gpt-5.4" },
+            modelSelection: { instanceId: ProviderInstanceId.make("testDriver"), model: "gpt-5.4" },
             runtimeMode: "full-access",
             interactionMode: "default",
             branch: null,

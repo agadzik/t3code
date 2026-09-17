@@ -53,13 +53,13 @@ describe("resolveThreadProviderInstance", () => {
     const serverConfigs = new Map<EnvironmentId, ServerConfig>([
       [
         environmentA,
-        makeConfig([{ instanceId: "codex", driver: "codex", accentColor: "#ff8800" }]),
+        makeConfig([{ instanceId: "testDriver", driver: "testDriver", accentColor: "#ff8800" }]),
       ],
-      [environmentB, makeConfig([{ instanceId: "codex", driver: "codex" }])],
+      [environmentB, makeConfig([{ instanceId: "testDriver", driver: "testDriver" }])],
     ]);
 
-    const threadA = makeThread(environmentA, "codex");
-    const threadB = makeThread(environmentB, "codex");
+    const threadA = makeThread(environmentA, "testDriver");
+    const threadB = makeThread(environmentB, "testDriver");
 
     expect(resolveThreadProviderInstance(serverConfigs, threadA)?.accentColor).toBe("#ff8800");
     expect(resolveThreadProviderInstance(serverConfigs, threadB)?.accentColor).toBeUndefined();
@@ -71,27 +71,28 @@ describe("resolveThreadProviderInstance", () => {
       [
         environmentId,
         makeConfig([
-          { instanceId: "codex", driver: "codex", displayName: "Codex" },
-          { instanceId: "codex_personal", driver: "codex", displayName: "Codex" },
+          { instanceId: "testDriver", driver: "testDriver", displayName: "Test Driver" },
+          { instanceId: "testDriver_personal", driver: "testDriver", displayName: "Test Driver" },
         ]),
       ],
     ]);
 
     expect(
-      resolveThreadProviderInstance(serverConfigs, makeThread(environmentId, "codex"))?.displayName,
-    ).toBe("Codex");
-    expect(
-      resolveThreadProviderInstance(serverConfigs, makeThread(environmentId, "codex_personal"))
+      resolveThreadProviderInstance(serverConfigs, makeThread(environmentId, "testDriver"))
         ?.displayName,
-    ).toBe("Codex Personal");
+    ).toBe("Test Driver");
+    expect(
+      resolveThreadProviderInstance(serverConfigs, makeThread(environmentId, "testDriver_personal"))
+        ?.displayName,
+    ).toBe("Test Driver Personal");
   });
 
   it("hides the badge for a single instance with no accent color", () => {
     const environmentId = EnvironmentId.make("environment-a");
     const serverConfigs = new Map<EnvironmentId, ServerConfig>([
-      [environmentId, makeConfig([{ instanceId: "codex", driver: "codex" }])],
+      [environmentId, makeConfig([{ instanceId: "testDriver", driver: "testDriver" }])],
     ]);
-    const thread = makeThread(environmentId, "codex");
+    const thread = makeThread(environmentId, "testDriver");
 
     expect(resolveThreadProviderInstance(serverConfigs, thread)?.showBadge).toBe(false);
   });

@@ -35,7 +35,7 @@ Terms whose meaning matters across T3 Code. Architecture and lifecycle constrain
 
 | Term                | Meaning                                                                                                      |
 | ------------------- | ------------------------------------------------------------------------------------------------------------ |
-| Provider            | The agent runtime T3 Code controls, such as Codex or Claude Code.                                            |
+| Provider            | The agent runtime T3 Code controls for a thread.                                                             |
 | Driver              | The integration for a provider kind.                                                                         |
 | Provider instance   | One configured provider, with its own settings and lifecycle. Multiple instances can use the same driver.    |
 | Adapter             | The boundary translating a provider's native protocol into T3 Code operations and events.                    |

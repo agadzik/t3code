@@ -34,13 +34,11 @@ import {
   type ProviderAuthState,
   ProviderDriverKind,
   ProviderInstanceId,
-  type ProviderInstallState,
   ProviderSetupError,
   ResolvedKeybindingRule,
   type ServerLifecycleStreamEvent,
   ThreadId,
   TurnId,
-  UsageLimitSourceId,
   WS_METHODS,
   WsRpcGroup,
   EditorId,
@@ -117,7 +115,6 @@ import {
 import * as CheckpointDiffQuery from "./checkpointing/CheckpointDiffQuery.ts";
 import * as GitManager from "./git/GitManager.ts";
 import * as EnvironmentTheme from "./environmentTheme.ts";
-import * as UsageLimitSources from "./usage/UsageLimitSources.ts";
 import * as Keybindings from "./keybindings.ts";
 import * as ExternalLauncher from "./process/externalLauncher.ts";
 import * as RemoteOpenTargets from "./environment/RemoteOpenTargets.ts";
@@ -137,10 +134,6 @@ import * as ProviderRegistry from "./provider/Services/ProviderRegistry.ts";
 import * as ProviderService from "./provider/Services/ProviderService.ts";
 import { ProviderAuthService } from "./provider/Services/ProviderAuthService.ts";
 import { ProviderInstanceRegistry } from "./provider/Services/ProviderInstanceRegistry.ts";
-import {
-  AntigravityInstallation,
-  AntigravityInstallationError,
-} from "./provider/AntigravityInstallation.ts";
 import type { ProviderInstance } from "./provider/ProviderDriver.ts";
 import * as ProviderSessionDirectory from "./provider/Services/ProviderSessionDirectory.ts";
 import { ProviderAdapterRequestError } from "./provider/Errors.ts";
@@ -187,7 +180,6 @@ import * as DesktopTelemetryReceiver from "./resourceTelemetry/DesktopTelemetryR
 import * as NativeTelemetryClient from "./resourceTelemetry/NativeTelemetryClient.ts";
 import * as ResourceAttribution from "./resourceTelemetry/ResourceAttribution.ts";
 import * as ResourceTelemetry from "./resourceTelemetry/ResourceTelemetry.ts";
-import * as UsageService from "./usage/UsageService.ts";
 import * as AnalyticsService from "./telemetry/AnalyticsService.ts";
 import * as Data from "effect/Data";
 
@@ -232,17 +224,6 @@ const defaultModelSelection = {
 
 const providerSetupInstanceId = ProviderInstanceId.make("antigravity-custom-profile");
 const providerSetupDriver = ProviderDriverKind.make("antigravity");
-const providerSetupInstallState: ProviderInstallState = {
-  driver: providerSetupDriver,
-  operationId: "install-operation",
-  phase: "downloading",
-  downloadedBytes: 128,
-  totalBytes: 256,
-  version: "test-release",
-  installedVersion: null,
-  canRemove: false,
-  message: null,
-};
 const providerSetupAuthState: ProviderAuthState = {
   instanceId: providerSetupInstanceId,
   phase: "idle",
@@ -518,11 +499,9 @@ const buildAppUnderTest = (options?: {
     keybindings?: Partial<Keybindings.Keybindings["Service"]>;
     environmentTheme?: Partial<EnvironmentTheme.EnvironmentThemeService["Service"]>;
     providerRegistry?: Partial<ProviderRegistry.ProviderRegistry["Service"]>;
-    usageLimitSources?: Partial<UsageLimitSources.UsageLimitSources["Service"]>;
     providerService?: Partial<ProviderService.ProviderService["Service"]>;
     providerAuth?: Partial<ProviderAuthService["Service"]>;
     providerInstanceRegistry?: Partial<ProviderInstanceRegistry["Service"]>;
-    antigravityInstallation?: Partial<AntigravityInstallation["Service"]>;
     serverSettings?: Partial<ServerSettings.ServerSettingsService["Service"]>;
     externalLauncher?: Partial<ExternalLauncher.ExternalLauncher["Service"]>;
     vcsDriver?: Partial<VcsDriver.VcsDriver["Service"]>;
@@ -777,12 +756,6 @@ const buildAppUnderTest = (options?: {
             streamChanges: Stream.empty,
             ...options?.layers?.environmentTheme,
           }),
-          Layer.mock(UsageLimitSources.UsageLimitSources)({
-            current: Effect.succeed([]),
-            streamChanges: Stream.make([]),
-            refresh: Effect.void,
-            ...options?.layers?.usageLimitSources,
-          }),
         ),
       ),
       Layer.provide(
@@ -810,10 +783,6 @@ const buildAppUnderTest = (options?: {
             getInstance: () => Effect.succeed(undefined),
             listInstances: Effect.succeed([]),
             ...options?.layers?.providerInstanceRegistry,
-          }),
-          Layer.mock(AntigravityInstallation)({
-            managedDirectory: "unused-test-antigravity-runtime",
-            ...options?.layers?.antigravityInstallation,
           }),
           Layer.mock(ProviderSessionDirectory.ProviderSessionDirectory)({
             upsert: () => Effect.void,
@@ -1059,7 +1028,6 @@ const buildAppUnderTest = (options?: {
 
     const appLayer = servedRoutesLayer.pipe(
       Layer.provide(resourceTelemetryLayer),
-      Layer.provide(UsageService.layerTest),
       Layer.provide(
         Layer.mock(AnalyticsService.AnalyticsService)({
           record: () => Effect.void,
@@ -5959,7 +5927,6 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
 
   it.effect("provider setup lets read-only clients observe installation but not change setup", () =>
     Effect.gen(function* () {
-      let installStarts = 0;
       let authCalls = 0;
       yield* buildAppUnderTest({
         layers: {
@@ -5968,13 +5935,6 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
               Effect.succeed(
                 instanceId === providerSetupInstanceId ? providerSetupInstance : undefined,
               ),
-          },
-          antigravityInstallation: {
-            start: Effect.sync(() => {
-              installStarts += 1;
-              return providerSetupInstallState;
-            }),
-            changes: Stream.succeed(providerSetupInstallState),
           },
           providerAuth: {
             start: () =>
@@ -6006,8 +5966,11 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
           Effect.gen(function* () {
             const observed = yield* client[WS_METHODS.providerInstallSubscribe]({
               instanceId: providerSetupInstanceId,
-            }).pipe(Stream.runHead, Effect.map(Option.getOrThrow));
-            assert.deepEqual(observed, providerSetupInstallState);
+            }).pipe(Stream.runHead, Effect.flip);
+            assert.equal(observed._tag, "ProviderSetupError");
+            if (observed._tag === "ProviderSetupError") {
+              assert.equal(observed.operation, "observe-install");
+            }
             const errors = [
               yield* client[WS_METHODS.providerInstallStart]({
                 instanceId: providerSetupInstanceId,
@@ -6028,7 +5991,6 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
           }),
         ),
       );
-      assert.equal(installStarts, 0);
       assert.equal(authCalls, 0);
     }).pipe(Effect.provide(NodeHttpServer.layerTest)),
   );
@@ -6186,8 +6148,6 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
     "provider setup routes installation operations and returns only safe typed errors",
     () =>
       Effect.gen(function* () {
-        const calls: string[] = [];
-        let state = providerSetupInstallState;
         yield* buildAppUnderTest({
           layers: {
             providerInstanceRegistry: {
@@ -6195,26 +6155,6 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
                 Effect.succeed(
                   instanceId === providerSetupInstanceId ? providerSetupInstance : undefined,
                 ),
-            },
-            antigravityInstallation: {
-              start: Effect.sync(() => {
-                calls.push("start");
-                return state;
-              }),
-              cancel: (operationId) =>
-                Effect.gen(function* () {
-                  calls.push(`cancel:${operationId}`);
-                  if (operationId !== state.operationId) {
-                    return yield* new AntigravityInstallationError({
-                      operation: "cancel",
-                      detail: "This installation is no longer running.",
-                      cause: new Error("Private download diagnostics."),
-                    });
-                  }
-                  state = { ...state, phase: "cancelled" };
-                  return state;
-                }),
-              changes: Stream.fromEffect(Effect.sync(() => state)),
             },
           },
         });
@@ -6226,35 +6166,43 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
                 instanceId: ProviderInstanceId.make("unknown-instance"),
               }).pipe(Effect.flip);
               assert.equal(unknownInstance._tag, "ProviderSetupError");
-              assert.deepEqual(calls, []);
+              if (unknownInstance._tag === "ProviderSetupError") {
+                assert.equal(unknownInstance.operation, "install");
+                assert.notProperty(unknownInstance, "cause");
+              }
               const started = yield* client[WS_METHODS.providerInstallStart]({
                 instanceId: providerSetupInstanceId,
-              });
-              assert.deepEqual(started, providerSetupInstallState);
-              const stale = yield* client[WS_METHODS.providerInstallCancel]({
-                instanceId: providerSetupInstanceId,
-                operationId: "old-operation",
               }).pipe(Effect.flip);
-              assert.equal(stale._tag, "ProviderSetupError");
-              if (stale._tag === "ProviderSetupError") {
-                assert.equal(stale.instanceId, providerSetupInstanceId);
-                assert.equal(stale.operation, "cancel");
-                assert.equal(stale.detail, "This installation is no longer running.");
-                assert.notProperty(stale, "cause");
+              assert.equal(started._tag, "ProviderSetupError");
+              if (started._tag === "ProviderSetupError") {
+                assert.equal(started.instanceId, providerSetupInstanceId);
+                assert.equal(started.operation, "install");
+                assert.equal(
+                  started.detail,
+                  "Managed installation is not available for this provider instance.",
+                );
+                assert.notProperty(started, "cause");
               }
               const cancelled = yield* client[WS_METHODS.providerInstallCancel]({
                 instanceId: providerSetupInstanceId,
                 operationId: "install-operation",
-              });
-              assert.equal(cancelled.phase, "cancelled");
+              }).pipe(Effect.flip);
+              assert.equal(cancelled._tag, "ProviderSetupError");
+              if (cancelled._tag === "ProviderSetupError") {
+                assert.equal(cancelled.operation, "cancel-install");
+                assert.notProperty(cancelled, "cause");
+              }
               const observed = yield* client[WS_METHODS.providerInstallSubscribe]({
                 instanceId: providerSetupInstanceId,
-              }).pipe(Stream.runHead, Effect.map(Option.getOrThrow));
-              assert.deepEqual(observed, cancelled);
+              }).pipe(Stream.runHead, Effect.flip);
+              assert.equal(observed._tag, "ProviderSetupError");
+              if (observed._tag === "ProviderSetupError") {
+                assert.equal(observed.operation, "observe-install");
+                assert.notProperty(observed, "cause");
+              }
             }),
           ),
         );
-        assert.deepEqual(calls, ["start", "cancel:old-operation", "cancel:install-operation"]);
       }).pipe(Effect.provide(NodeHttpServer.layerTest)),
   );
 
@@ -6600,21 +6548,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         assert.deepEqual(second, {
           version: 1,
           type: "providerStatuses",
-          payload: {
-            providers: hasLimits
-              ? [
-                  {
-                    ...nextProviders[0],
-                    slashCommands: [
-                      {
-                        name: "usage-limits",
-                        description: "Show this provider's usage limits",
-                      },
-                    ],
-                  },
-                ]
-              : nextProviders,
-          },
+          payload: { providers: nextProviders },
         });
       }).pipe(Effect.provide(NodeHttpServer.layerTest)),
   );
@@ -6669,93 +6603,6 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
           version: 1,
           type: "providerStatuses",
           payload: { providers: [{ ...codex, version: "1.0.1" }] },
-        });
-      }).pipe(Effect.provide(NodeHttpServer.layerTest)),
-  );
-
-  it.effect(
-    "routes websocket rpc subscribeServerConfig republishes commands when only a limits source changes",
-    () =>
-      Effect.gen(function* () {
-        const codex = {
-          instanceId: ProviderInstanceId.make("codex"),
-          driver: ProviderDriverKind.make("codex"),
-          enabled: true,
-          installed: true,
-          version: "1.0.0",
-          status: "ready" as const,
-          auth: { status: "authenticated" as const },
-          checkedAt: "2026-04-11T00:00:00.000Z",
-          models: [],
-          slashCommands: [],
-          skills: [],
-        };
-        const hub = {
-          id: UsageLimitSourceId.make("hub"),
-          kind: "cliproxy" as const,
-          label: "Accounts",
-          checkedAt: "2026-04-11T00:00:00.000Z",
-          accounts: [
-            {
-              id: "work",
-              driver: ProviderDriverKind.make("codex"),
-              usageLimits: {
-                checkedAt: "2026-04-11T00:00:00.000Z",
-                windows: [
-                  { id: "weekly", kind: "weekly" as const, label: "Weekly", usedPercent: 25 },
-                ],
-              },
-            },
-          ],
-        };
-
-        yield* buildAppUnderTest({
-          layers: {
-            keybindings: {
-              loadConfigState: Effect.succeed({ keybindings: [], issues: [] }),
-              streamChanges: Stream.empty,
-            },
-            // The registry emits no change: only the source refresh can carry it.
-            providerRegistry: {
-              getProviders: Effect.succeed([codex]),
-              streamChanges: Stream.empty,
-            },
-            usageLimitSources: {
-              current: Effect.succeed([]),
-              // Replay the empty snapshot, then a later refresh, as the live stream does.
-              streamChanges: Stream.concat(Stream.make([]), Stream.make([hub])),
-            },
-          },
-        });
-
-        const wsUrl = yield* getWsServerUrl("/ws");
-        const events = yield* Effect.scoped(
-          withWsRpcClient(wsUrl, (client) =>
-            client[WS_METHODS.subscribeServerConfig]({ usageLimitsCommand: true }).pipe(
-              Stream.take(2),
-              Stream.runCollect,
-            ),
-          ),
-        );
-
-        const [first, second] = Array.from(events);
-        assert.equal(first?.type, "snapshot");
-        if (first?.type === "snapshot") {
-          assert.deepEqual(first.config.providers, [codex]);
-        }
-        assert.deepEqual(second, {
-          version: 1,
-          type: "providerStatuses",
-          payload: {
-            providers: [
-              {
-                ...codex,
-                slashCommands: [
-                  { name: "usage-limits", description: "Show this provider's usage limits" },
-                ],
-              },
-            ],
-          },
         });
       }).pipe(Effect.provide(NodeHttpServer.layerTest)),
   );

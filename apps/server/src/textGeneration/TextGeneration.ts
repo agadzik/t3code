@@ -10,7 +10,7 @@ import * as SourceControlProviderRegistry from "../sourceControl/SourceControlPr
 import * as ThreadTitleLinks from "./ThreadTitleLinks.ts";
 import type { TextGenerationPolicy } from "./TextGenerationPolicy.ts";
 
-export type TextGenerationProvider = "codex" | "claudeAgent" | "cursor" | "grok" | "opencode";
+export type TextGenerationProvider = string;
 
 export interface CommitMessageGenerationInput {
   cwd: string;

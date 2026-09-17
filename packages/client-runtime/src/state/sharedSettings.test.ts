@@ -57,12 +57,12 @@ describe("splitSharedServerPatch", () => {
 
   it.each([
     {
-      instanceId: ProviderInstanceId.make("codex"),
+      instanceId: ProviderInstanceId.make("testDriver"),
       model: "gpt-5.6-sol",
       options: [{ id: "reasoningEffort", value: "low" }],
     },
     {
-      instanceId: ProviderInstanceId.make("claudeAgent"),
+      instanceId: ProviderInstanceId.make("otherDriver"),
       model: "claude-sonnet-4-6",
       options: [{ id: "effort", value: "high" }],
     },
@@ -140,15 +140,15 @@ describe("filterSharedServerPatch", () => {
       const settings = {
         ...DEFAULT_SERVER_SETTINGS,
         providerInstances: {
-          codex: { driver: ProviderDriverKind.make("codex"), enabled: false, config: {} },
+          codex: { driver: ProviderDriverKind.make("testDriver"), enabled: false, config: {} },
           claudeAgent: {
-            driver: ProviderDriverKind.make("claudeAgent"),
+            driver: ProviderDriverKind.make("otherDriver"),
             enabled: true,
             config: {},
           },
         },
         textGenerationModelSelection: {
-          instanceId: ProviderInstanceId.make("claudeAgent"),
+          instanceId: ProviderInstanceId.make("otherDriver"),
           model: "claude-opus-4-6",
         },
       };
@@ -171,7 +171,7 @@ describe("filterSharedServerPatch", () => {
   it.each(["missing", "disabled", "different-driver", "enabled"] as const)(
     "shares a custom model only when its target provider is enabled (%s)",
     (availability) => {
-      const instanceId = ProviderInstanceId.make("codex_personal");
+      const instanceId = ProviderInstanceId.make("testDriver_personal");
       const selection = {
         instanceId,
         model: "gpt-5.6-luna",
@@ -179,7 +179,7 @@ describe("filterSharedServerPatch", () => {
       };
       const instance = {
         driver: ProviderDriverKind.make(
-          availability === "different-driver" ? "claudeAgent" : "codex",
+          availability === "different-driver" ? "otherDriver" : "testDriver",
         ),
         enabled: availability !== "disabled",
         config: {},
@@ -192,7 +192,11 @@ describe("filterSharedServerPatch", () => {
       const sourceSettings = {
         ...settings,
         providerInstances: {
-          [instanceId]: { ...instance, driver: ProviderDriverKind.make("codex"), enabled: true },
+          [instanceId]: {
+            ...instance,
+            driver: ProviderDriverKind.make("testDriver"),
+            enabled: true,
+          },
         },
       };
       expect(filterSharedServerPatch(patch, restartCapabilities, settings, sourceSettings)).toEqual(

@@ -159,13 +159,13 @@ describe("settings scope navigation", () => {
       to: "/settings/providers",
       search: {
         environmentId: EnvironmentId.make("provider-server"),
-        instanceId: ProviderInstanceId.make("codex-work"),
+        instanceId: ProviderInstanceId.make("testDriver-work"),
       },
     });
     expect(router.state.location.search).toEqual({
       machine: "provider-server",
       environmentId: "provider-server",
-      instanceId: "codex-work",
+      instanceId: "testDriver-work",
     });
     await router.navigate({ to: "/settings/general", hash: "" });
     expect(router.state.location.search).toEqual({ machine: "provider-server" });

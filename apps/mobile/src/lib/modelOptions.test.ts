@@ -192,12 +192,12 @@ describe("mobile model options", () => {
     expect(resolveSelectableModelSelection(config, usable)).toBe(usable);
     expect(resolveSelectableModelSelection(config, disabled)).toBeNull();
     expect(resolveSelectableModelSelection(config, removed)).toBeNull();
-    expect(isModelSelectionUnavailable(config, disabled)).toBe(false);
+    expect(isModelSelectionUnavailable(config, disabled)).toBe(true);
     // An offline environment has no config to validate.
     expect(resolveSelectableModelSelection(null, disabled)).toBe(disabled);
   });
 
-  describe("Antigravity selections", () => {
+  describe("unavailable provider selections", () => {
     const selection = {
       instanceId: ProviderInstanceId.make("google_work"),
       model: "gemini-3.1-pro-high",
@@ -209,7 +209,6 @@ describe("mobile model options", () => {
       subProvider: "Google",
       isCustom: false,
       isDefault: true,
-      isLegacy: true,
       capabilities: {
         optionDescriptors: [
           {
@@ -226,7 +225,7 @@ describe("mobile model options", () => {
       providers: [
         {
           instanceId: selection.instanceId,
-          driver: "antigravity",
+          driver: "testDriver",
           displayName: "Google Work",
           enabled: true,
           installed: true,
@@ -247,8 +246,9 @@ describe("mobile model options", () => {
         providers: config.providers.map((provider) => ({ ...provider, ...update })),
       };
 
-      expect(resolveSelectableModelSelection(unavailableConfig, selection)).toBe(selection);
-      expect(resolveDefaultableModelSelection(unavailableConfig, selection)).toBe(selection);
+      // New selections fall through to the server default; the stored one stays visible.
+      expect(resolveSelectableModelSelection(unavailableConfig, selection)).toBeNull();
+      expect(resolveDefaultableModelSelection(unavailableConfig, selection)).toBeNull();
       expect(isModelSelectionUnavailable(unavailableConfig, selection)).toBe(true);
       expect(buildModelOptions(unavailableConfig, null)).toEqual([]);
       const [option] = buildModelOptions(unavailableConfig, selection);
@@ -258,9 +258,9 @@ describe("mobile model options", () => {
         subtitle: "Google",
         providerKey: "google_work",
         providerLabel: "Google Work",
-        providerDriver: "antigravity",
+        providerDriver: "testDriver",
         isDefault: false,
-        isLegacy: true,
+        isLegacy: false,
         isUnavailable: true,
         capabilities: model.capabilities,
       });
@@ -283,7 +283,7 @@ describe("mobile model options", () => {
       expect(missing).toMatchObject({
         label: selection.model,
         providerLabel: "Google Work",
-        providerDriver: "antigravity",
+        providerDriver: "testDriver",
         isUnavailable: true,
         capabilities: null,
       });
@@ -300,7 +300,13 @@ describe("mobile model options", () => {
       const [restored] = buildModelOptions(config, selection);
       expect(isModelSelectionUnavailable(config, selection)).toBe(false);
       expect(restored?.isUnavailable).not.toBe(true);
-      expect(restored?.selection).toBe(selection);
+      // Normalization rebuilds the selection against current descriptors: the
+      // model survives exactly, an option value the catalog no longer knows
+      // resets to the descriptor default.
+      expect(restored?.selection).toEqual({
+        ...selection,
+        options: [{ id: "native-option", value: "current/default" }],
+      });
       expect(resolveDefaultableModelSelection(config, selection)).toBe(selection);
       expect(buildModelOptions(config, null)[0]?.selection.options).toBeUndefined();
     });
@@ -310,16 +316,17 @@ describe("mobile model options", () => {
         providers: [],
         settings: {
           providerInstances: {
-            [selection.instanceId]: { driver: "antigravity", displayName: "Google Work" },
+            [selection.instanceId]: { driver: "testDriver", displayName: "Google Work" },
           },
         },
       } as unknown as ServerConfig;
 
-      expect(resolveDefaultableModelSelection(missingStatusConfig, selection)).toBe(selection);
+      // No status to validate against: not defaultable, but still displayed.
+      expect(resolveDefaultableModelSelection(missingStatusConfig, selection)).toBeNull();
       expect(isModelSelectionUnavailable(missingStatusConfig, selection)).toBe(true);
       expect(buildModelOptions(missingStatusConfig, selection)).toMatchObject([
         {
-          providerDriver: "antigravity",
+          providerDriver: "testDriver",
           providerLabel: "Google Work",
           isUnavailable: true,
           selection,
@@ -327,7 +334,7 @@ describe("mobile model options", () => {
       ]);
     });
 
-    it("keeps offline selections without assuming that an unknown instance is Antigravity", () => {
+    it("keeps offline selections without assuming an unknown instance's driver", () => {
       const unknownConfig = { ...config, providers: [] };
 
       expect(resolveDefaultableModelSelection(null, selection)).toBe(selection);

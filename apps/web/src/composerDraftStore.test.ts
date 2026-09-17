@@ -27,12 +27,12 @@ import {
 // The composer draft's `modelSelectionByProvider` and
 // `stickyModelSelectionByProvider` maps are keyed by `ProviderInstanceId`
 // in production; these aliases keep the legacy-key migration tests concise.
-const CODEX_INSTANCE = ProviderInstanceId.make("codex");
+const CODEX_INSTANCE = ProviderInstanceId.make("testDriver");
 const CODEX_SECONDARY_INSTANCE = ProviderInstanceId.make("codex_secondary");
-const CLAUDE_AGENT_INSTANCE = ProviderInstanceId.make("claudeAgent");
+const CLAUDE_AGENT_INSTANCE = ProviderInstanceId.make("otherDriver");
 const CURSOR_INSTANCE = ProviderInstanceId.make("cursor");
-const CODEX_DRIVER = ProviderDriverKind.make("codex");
-const CLAUDE_AGENT_DRIVER = ProviderDriverKind.make("claudeAgent");
+const CODEX_DRIVER = ProviderDriverKind.make("testDriver");
+const CLAUDE_AGENT_DRIVER = ProviderDriverKind.make("otherDriver");
 const CURSOR_DRIVER = ProviderDriverKind.make("cursor");
 
 type ProviderOptionSelectionBag = ReadonlyArray<ProviderOptionSelection>;
@@ -2154,13 +2154,16 @@ describe("composerDraftStore modelSelection", () => {
     store.setModelOptions(
       threadRef,
       providerModelOptions({
-        codex: { fastMode: true },
-        claudeAgent: { effort: "max" },
+        [CODEX_DRIVER]: { fastMode: true },
+        [CLAUDE_AGENT_DRIVER]: { effort: "max" },
       }),
     );
 
-    // Now set options for only codex — claudeAgent should be untouched
-    store.setModelOptions(threadRef, providerModelOptions({ codex: { reasoningEffort: "xhigh" } }));
+    // Now set options for only the first instance. The other stays untouched.
+    store.setModelOptions(
+      threadRef,
+      providerModelOptions({ [CODEX_DRIVER]: { reasoningEffort: "xhigh" } }),
+    );
 
     const draft = draftFor(threadId, TEST_ENVIRONMENT_ID);
     expect(draft?.modelSelectionByProvider[CODEX_INSTANCE]?.options).toEqual(
@@ -2182,8 +2185,8 @@ describe("composerDraftStore modelSelection", () => {
     store.setModelOptions(
       threadRef,
       providerModelOptions({
-        codex: { fastMode: true },
-        claudeAgent: { effort: "max" },
+        [CODEX_DRIVER]: { fastMode: true },
+        [CLAUDE_AGENT_DRIVER]: { effort: "max" },
       }),
     );
 
@@ -2196,7 +2199,7 @@ describe("composerDraftStore modelSelection", () => {
     expect(draft?.modelSelectionByProvider[CODEX_INSTANCE]?.options).toEqual(
       createModelSelection(CODEX_INSTANCE, "gpt-5.4", toSelections({ fastMode: true })).options,
     );
-    expect(draft?.activeProvider).toBe("claudeAgent");
+    expect(draft?.activeProvider).toBe(CLAUDE_AGENT_INSTANCE);
   });
 
   it("creates the first sticky snapshot from provider option changes", () => {
@@ -2325,7 +2328,7 @@ describe("composerDraftStore sticky composer settings", () => {
         fastMode: true,
       }),
     );
-    expect(useComposerDraftStore.getState().stickyActiveProvider).toBe("codex");
+    expect(useComposerDraftStore.getState().stickyActiveProvider).toBe(CODEX_INSTANCE);
   });
 
   it("normalizes empty sticky model options by dropping selection options", () => {
@@ -2336,7 +2339,7 @@ describe("composerDraftStore sticky composer settings", () => {
     expect(useComposerDraftStore.getState().stickyModelSelectionByProvider[CODEX_INSTANCE]).toEqual(
       modelSelection(CODEX_DRIVER, "gpt-5.4"),
     );
-    expect(useComposerDraftStore.getState().stickyActiveProvider).toBe("codex");
+    expect(useComposerDraftStore.getState().stickyActiveProvider).toBe(CODEX_INSTANCE);
   });
 
   it("drops empty cursor model options when normalizing sticky state", () => {
@@ -2386,9 +2389,9 @@ describe("composerDraftStore sticky composer settings", () => {
 
     expect(draftFor(threadId, TEST_ENVIRONMENT_ID)).toMatchObject({
       modelSelectionByProvider: {
-        claudeAgent: modelSelection(CLAUDE_AGENT_DRIVER, "claude-opus-4-6"),
+        [CLAUDE_AGENT_INSTANCE]: modelSelection(CLAUDE_AGENT_DRIVER, "claude-opus-4-6"),
       },
-      activeProvider: "claudeAgent",
+      activeProvider: CLAUDE_AGENT_INSTANCE,
     });
   });
 
@@ -2463,13 +2466,18 @@ describe("composerDraftStore model seed migration", () => {
   });
 
   it.each([1, 2])(
-    "keeps the legacy sticky Codex selection when v%s storage omitted the provider",
+    "keeps the legacy sticky selection when v%s storage omitted the provider",
     async (version) => {
       vi.useFakeTimers();
       try {
-        const stickySelection = modelSelection(CODEX_DRIVER, "gpt-5.6-terra", {
-          reasoningEffort: "xhigh",
-        });
+        // v1/v2 stored driver-kind keys and defaulted a missing stickyProvider to
+        // "codex". Migration keeps that historical instance id.
+        const historicalInstance = ProviderInstanceId.make("codex");
+        const stickySelection = createModelSelection(
+          historicalInstance,
+          "gpt-5.6-terra",
+          toSelections({ reasoningEffort: "xhigh" }),
+        );
         const storage = useComposerDraftStore.persist.getOptions().storage;
         expect(storage).toBeDefined();
         storage?.setItem(COMPOSER_DRAFT_STORAGE_KEY, {
@@ -2480,7 +2488,7 @@ describe("composerDraftStore model seed migration", () => {
             projectDraftThreadIdByProjectId: {},
             stickyModel: stickySelection.model,
             stickyModelOptions: providerModelOptions({
-              [CODEX_DRIVER]: { reasoningEffort: "xhigh" },
+              codex: { reasoningEffort: "xhigh" },
             }),
           },
         } as never);
@@ -2489,7 +2497,7 @@ describe("composerDraftStore model seed migration", () => {
         await useComposerDraftStore.persist.rehydrate();
 
         expect(useComposerDraftStore.getState()).toMatchObject({
-          stickyModelSelectionByProvider: { [CODEX_INSTANCE]: stickySelection },
+          stickyModelSelectionByProvider: { [historicalInstance]: stickySelection },
           stickyActiveProvider: null,
         });
       } finally {
@@ -2705,7 +2713,7 @@ describe("composerDraftStore provider-scoped option updates", () => {
         toSelections({ effort: "max" }),
       ).options,
     );
-    expect(draft?.activeProvider).toBe("codex");
+    expect(draft?.activeProvider).toBe(CODEX_INSTANCE);
   });
 });
 

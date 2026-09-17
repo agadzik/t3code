@@ -8,7 +8,6 @@ import {
   defaultInstanceIdForDriver,
   DEFAULT_PROVIDER_INTERACTION_MODE,
   DEFAULT_MODEL,
-  DEFAULT_MODEL_BY_PROVIDER,
   EventId,
   MessageId,
   ProjectId,
@@ -110,7 +109,7 @@ function withRealCodexHarness<A, E>(
   use: (harness: OrchestrationIntegrationHarness) => Effect.Effect<A, E>,
 ) {
   return Effect.acquireUseRelease(
-    makeOrchestrationIntegrationHarness({ provider: CODEX_PROVIDER, realCodex: true }),
+    makeOrchestrationIntegrationHarness({ provider: CODEX_PROVIDER }),
     use,
     (harness) => harness.dispose,
   ).pipe(Effect.provide(NodeServices.layer));
@@ -120,7 +119,7 @@ const seedProjectAndThread = (harness: OrchestrationIntegrationHarness) =>
   Effect.gen(function* () {
     const createdAt = nowIso();
     const provider = harness.adapterHarness?.provider ?? CODEX_PROVIDER;
-    const defaultModel = DEFAULT_MODEL_BY_PROVIDER[provider] ?? DEFAULT_MODEL;
+    const defaultModel = DEFAULT_MODEL;
     const instanceId = defaultInstanceIdForDriver(provider);
 
     yield* harness.engine.dispatch({

@@ -41,7 +41,7 @@ function makeProject(overrides: Partial<Project> = {}): Project {
     workspaceRoot: "/tmp/shared-repo",
     repositoryIdentity: null,
     defaultModelSelection: {
-      instanceId: ProviderInstanceId.make("codex"),
+      instanceId: ProviderInstanceId.make("testDriver"),
       model: "gpt-5-codex",
     },
     createdAt: "2026-01-01T00:00:00.000Z",

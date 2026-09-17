@@ -1,7 +1,6 @@
 import {
   CommandId,
   DEFAULT_MODEL,
-  DEFAULT_MODEL_BY_PROVIDER,
   DEFAULT_PROVIDER_INTERACTION_MODE,
   DEFAULT_RUNTIME_MODE,
   AgentSessionImportProjectChangedError,
@@ -169,7 +168,7 @@ export const importRecentAgentThreads = Effect.fn("importRecentAgentThreads")(fu
       );
       const imported = yield* Effect.gen(function* () {
         const provider = ProviderDriverKind.make(thread.source);
-        const model = thread.model ?? DEFAULT_MODEL_BY_PROVIDER[provider] ?? DEFAULT_MODEL;
+        const model = thread.model ?? DEFAULT_MODEL;
         const existingThread = yield* snapshots.getThreadDetailById(threadId);
         const existingBinding = yield* directory.getBinding(threadId);
 

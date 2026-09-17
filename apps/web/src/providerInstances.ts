@@ -1,19 +1,14 @@
 /**
  * Instance-aware view over the wire `ServerProvider[]`.
  *
- * The wire carries one `ServerProvider` per *configured instance* — the
- * default built-in codex instance, a user-authored `codex_personal`, an
- * unavailable shadow for a fork driver, etc. Legacy UI code collapsed these
- * into a single bucket per built-in driver via `.find((p) => p.driver === kind)`,
- * which silently dropped every custom instance after the first. This module
- * replaces that pattern with `ProviderInstanceEntry[]`, keyed on
- * `ProviderInstanceId`, so the model picker, settings list, and composer
- * can treat built-in and custom instances uniformly.
+ * The wire carries one `ServerProvider` per configured instance. This module
+ * projects those into `ProviderInstanceEntry[]`, keyed on `ProviderInstanceId`,
+ * so the model picker, settings list, and composer treat default and custom
+ * instances uniformly. Zero providers is a valid, handled state.
  *
  * @module providerInstances
  */
 import {
-  DEFAULT_MODEL_BY_PROVIDER,
   defaultInstanceIdForDriver,
   resolveProviderInstanceEnabled,
   type ModelSelection,
@@ -149,31 +144,19 @@ export function deriveProviderEntriesByEnvironment(
  * settings write, so picker visibility must follow settings rather than waiting
  * for probe reconciliation.
  *
- * Only built-in default instances have a legacy `providers` entry. Every
- * other instance exists through `providerInstances`; if it is absent there,
- * its streamed snapshot is stale (for example immediately after deletion)
- * and is treated as disabled.
+ * Instances exist through `providerInstances`. A missing custom instance is a
+ * stale snapshot after deletion and is treated as disabled. Default instances
+ * keep their streamed enabled flag when they have no settings overlay yet.
  */
 export function applyProviderInstanceSettings(
   entries: ReadonlyArray<ProviderInstanceEntry>,
-  settings: Pick<ServerSettings, "providerInstances" | "providers">,
+  settings: Pick<ServerSettings, "providerInstances">,
 ): ReadonlyArray<ProviderInstanceEntry> {
-  const legacyProviders = settings.providers as Readonly<
-    Record<string, { readonly enabled?: boolean } | undefined>
-  >;
-
   return entries.map((entry) => {
     const explicitInstance = Object.hasOwn(settings.providerInstances, entry.instanceId)
       ? settings.providerInstances[entry.instanceId]
       : undefined;
-    const legacyProvider = Object.hasOwn(legacyProviders, entry.driverKind)
-      ? legacyProviders[entry.driverKind]
-      : undefined;
-    const enabled = explicitInstance
-      ? resolveProviderInstanceEnabled(explicitInstance)
-      : entry.isDefault && legacyProvider
-        ? (legacyProvider.enabled ?? entry.enabled)
-        : false;
+    const enabled = explicitInstance ? resolveProviderInstanceEnabled(explicitInstance) : false;
     return enabled === entry.enabled ? entry : { ...entry, enabled };
   });
 }
@@ -223,10 +206,9 @@ function getProviderInstanceEntry(
 
 /**
  * Default model slug for a specific instance: its declared built-in default,
- * then its first built-in model, then any model it reports, then the driver-level default. Custom
- * instances can serve a different model list than the default instance of
- * the same driver kind, so the lookup must be instance-scoped rather than
- * kind-scoped.
+ * then its first built-in model, then any model it reports. Custom instances
+ * can serve a different model list than the default instance of the same
+ * driver kind, so the lookup must be instance-scoped rather than kind-scoped.
  */
 export function getDefaultProviderInstanceModel(
   providers: ReadonlyArray<ServerProvider>,
@@ -237,8 +219,7 @@ export function getDefaultProviderInstanceModel(
   return (
     entry.models.find((model) => model.isDefault && !model.isCustom)?.slug ??
     entry.models.find((model) => !model.isCustom)?.slug ??
-    entry.models[0]?.slug ??
-    DEFAULT_MODEL_BY_PROVIDER[entry.driverKind]
+    entry.models[0]?.slug
   );
 }
 
@@ -301,13 +282,13 @@ export function resolveDefaultProviderModelSelection(
 
 /**
  * Resolve an open model-selection routing key back to a driver kind.
- * Custom instance ids such as `claude_openrouter` are not themselves
- * driver-kind slugs, but the composer still needs the owning driver kind
- * for capabilities, options, icons, and turn dispatch metadata.
+ * Custom instance ids are not themselves driver-kind slugs, but the
+ * composer still needs the owning driver kind for capabilities, options,
+ * icons, and turn dispatch metadata.
  */
 export function resolveProviderDriverKindForInstanceSelection(
   entries: ReadonlyArray<ProviderInstanceEntry>,
-  providers: ReadonlyArray<ServerProvider>,
+  _providers: ReadonlyArray<ServerProvider>,
   selection: ProviderInstanceId | ProviderDriverKind | null | undefined,
 ): ProviderDriverKind | undefined {
   const matchedEntry = entries.find((entry) => entry.instanceId === selection);

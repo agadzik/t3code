@@ -322,7 +322,7 @@ function makeThread(overrides: Partial<Thread> = {}): Thread {
     environmentId: LOCAL_ENVIRONMENT_ID,
     projectId: PROJECT_ID,
     title: "Thread",
-    modelSelection: { instanceId: ProviderInstanceId.make("codex"), model: "gpt-5" },
+    modelSelection: { instanceId: ProviderInstanceId.make("testDriver"), model: "gpt-5" },
     runtimeMode: "full-access",
     interactionMode: "default",
     session: null,

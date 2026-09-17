@@ -91,7 +91,7 @@ const BASE_THREAD: OrchestrationThread = {
   projectId: ProjectId.make("project-1"),
   title: "Windowed thread",
   modelSelection: {
-    instanceId: ProviderInstanceId.make("codex"),
+    instanceId: ProviderInstanceId.make("testDriver"),
     model: "gpt-5.4",
   },
   runtimeMode: "full-access",

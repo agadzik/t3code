@@ -37,10 +37,10 @@ describe("ComposerCommandMenu", () => {
           {
             id: "skill:codex:browser",
             type: "skill",
-            provider: ProviderDriverKind.make("codex"),
+            provider: ProviderDriverKind.make("testDriver"),
             skill: {
               name: "browser",
-              path: "/Users/maria/.codex/plugins/browser/skills/browser/SKILL.md",
+              path: "/Users/maria/.agents/plugins/browser/skills/browser/SKILL.md",
               scope: "user",
               enabled: true,
             },
@@ -71,7 +71,7 @@ describe("ComposerCommandMenu", () => {
           {
             id: "skill:codex:ask-matt",
             type: "skill",
-            provider: ProviderDriverKind.make("codex"),
+            provider: ProviderDriverKind.make("testDriver"),
             skill: {
               name: "ask-matt",
               displayName: "Ask Matt",

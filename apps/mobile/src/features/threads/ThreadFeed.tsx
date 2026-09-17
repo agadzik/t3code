@@ -25,10 +25,6 @@ import {
 } from "@t3tools/shared/composerContextReferences";
 import { ComposerContextSheet } from "../../components/ComposerContextSheet";
 import { writeComposerContextClipboard } from "../../lib/composerContextClipboard";
-import {
-  codexArtifactTemplatePresentationLabel,
-  type CodexArtifactTemplate,
-} from "@t3tools/client-runtime/codex-artifact-templates";
 import { resolveAssetUrl } from "@t3tools/client-runtime/state/assets";
 import { formatAttachmentSize } from "@t3tools/client-runtime/state/attachments";
 import { squashAtomCommandFailure } from "@t3tools/client-runtime/state/runtime";
@@ -37,10 +33,7 @@ import {
   markdownImageSourceFragment,
 } from "@t3tools/client-runtime/markdown-images";
 import { resolveViewedImageAsset } from "@t3tools/client-runtime/work-log/presentation";
-import {
-  renderCodexFileCitationsAsMarkdown,
-  splitCodexArtifactTemplateMarkdown,
-} from "@t3tools/client-runtime/codex-markdown-directives";
+import { renderFileCitationsAsMarkdown } from "@t3tools/client-runtime/file-citation-markdown-directives";
 import { CHAT_LIST_ANCHOR_OFFSET, resolveChatListAnchoredEndSpace } from "@t3tools/shared/chatList";
 import { imageMimeType } from "@t3tools/shared/image";
 import { videoMimeType } from "@t3tools/shared/video";
@@ -271,7 +264,6 @@ export interface ThreadFeedProps {
   readonly onHeaderMaterialVisibilityChange?: (visible: boolean) => void;
   readonly onEndFollowEnabledChange?: (enabled: boolean) => void;
   readonly skills?: ReadonlyArray<SelectableMarkdownSkill>;
-  readonly onUseArtifactTemplate?: (template: CodexArtifactTemplate) => void;
   /** Non-null when older turns exist beyond the loaded window. */
   readonly loadEarlier?: {
     readonly loading: boolean;
@@ -711,66 +703,6 @@ function MarkdownInlineCode(props: {
   );
 }
 
-const ARTIFACT_TEMPLATE_SYMBOL_BY_KIND: Record<
-  CodexArtifactTemplate["artifactKind"],
-  AppSymbolName
-> = {
-  document: "doc.text",
-  presentation: "chart.bar.xaxis",
-  spreadsheet: "chart.bar.xaxis",
-  site: "safari",
-  "google-docs": "doc.text",
-  "google-slides": "chart.bar.xaxis",
-  "google-sheets": "chart.bar.xaxis",
-  image: "camera",
-  email: "text.bubble",
-  slack: "text.bubble",
-};
-
-function ArtifactTemplateCard(props: {
-  readonly template: CodexArtifactTemplate;
-  readonly onUse?: ((template: CodexArtifactTemplate) => void) | undefined;
-}) {
-  return (
-    <View className="my-2 min-w-0 flex-row items-center gap-3 rounded-2xl border border-border bg-card px-3 py-3">
-      <View className="relative h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border bg-subtle">
-        <SymbolView
-          name={ARTIFACT_TEMPLATE_SYMBOL_BY_KIND[props.template.artifactKind]}
-          size={20}
-          tintColorClassName="accent-foreground-muted"
-          type="monochrome"
-        />
-        <View className="absolute -right-1 -bottom-1 h-4 w-4 items-center justify-center rounded-full bg-fuchsia-500">
-          <SymbolView
-            name={{ ios: "sparkles", android: "auto_awesome" }}
-            size={9}
-            tintColor="white"
-            type="monochrome"
-          />
-        </View>
-      </View>
-      <View className="min-w-0 flex-1">
-        <Text className="font-t3-bold text-sm text-foreground" numberOfLines={1}>
-          {props.template.displayName}
-        </Text>
-        <Text className="text-xs text-foreground-muted">
-          {codexArtifactTemplatePresentationLabel(props.template.artifactKind)}
-        </Text>
-      </View>
-      {props.onUse ? (
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={`Use ${props.template.displayName} template`}
-          className="min-h-9 justify-center rounded-lg border border-border bg-subtle px-3 active:opacity-65"
-          onPress={() => props.onUse?.(props.template)}
-        >
-          <Text className="font-t3-bold text-xs text-foreground">Use template</Text>
-        </Pressable>
-      ) : null}
-    </View>
-  );
-}
-
 /** Tap opens a link; long-press on a native file chip shows its menu. Built once per feed. */
 interface MarkdownLinkHandlers {
   readonly onLinkPress: (href: string) => void;
@@ -782,49 +714,29 @@ const AssistantMarkdownContent = memo(function AssistantMarkdownContent(props: {
   readonly markdown: string;
   readonly markdownStyles: MarkdownStyleSet;
   readonly linkHandlers: MarkdownLinkHandlers;
-  readonly onUseArtifactTemplate?: ((template: CodexArtifactTemplate) => void) | undefined;
   readonly renderImage: MarkdownImageRenderer;
   readonly skills?: ReadonlyArray<SelectableMarkdownSkill> | undefined;
 }) {
-  const segments = useMemo(
-    () => splitCodexArtifactTemplateMarkdown(props.markdown),
-    [props.markdown],
+  const markdown = renderFileCitationsAsMarkdown(props.markdown);
+  if (markdown.trim().length === 0) return null;
+  return hasNativeSelectableMarkdownText() ? (
+    <SelectableMarkdownText
+      markdown={markdown}
+      skills={props.skills}
+      textStyle={props.markdownStyles.nativeTextStyle}
+      {...props.linkHandlers}
+      renderImage={props.renderImage}
+    />
+  ) : (
+    <Markdown
+      options={{ gfm: true }}
+      renderers={props.markdownStyles.renderers}
+      styles={props.markdownStyles.styles}
+      theme={props.markdownStyles.theme}
+    >
+      {markdown}
+    </Markdown>
   );
-
-  return segments.map((segment) => {
-    if (segment.kind === "artifact-template") {
-      return (
-        <ArtifactTemplateCard
-          key={`artifact-template:${segment.sourceOffset}`}
-          template={segment.template}
-          onUse={props.onUseArtifactTemplate}
-        />
-      );
-    }
-    if (segment.markdown.trim().length === 0) return null;
-
-    const markdown = renderCodexFileCitationsAsMarkdown(segment.markdown);
-    return hasNativeSelectableMarkdownText() ? (
-      <SelectableMarkdownText
-        key={`markdown:${segment.sourceOffset}`}
-        markdown={markdown}
-        skills={props.skills}
-        textStyle={props.markdownStyles.nativeTextStyle}
-        {...props.linkHandlers}
-        renderImage={props.renderImage}
-      />
-    ) : (
-      <Markdown
-        key={`markdown:${segment.sourceOffset}`}
-        options={{ gfm: true }}
-        renderers={props.markdownStyles.renderers}
-        styles={props.markdownStyles.styles}
-        theme={props.markdownStyles.theme}
-      >
-        {markdown}
-      </Markdown>
-    );
-  });
 });
 
 function MarkdownCodeBlock(props: {
@@ -1353,11 +1265,7 @@ function renderFeedEntry(
   info: { item: PendingThreadFeedEntry; index: number },
   props: Pick<
     ThreadFeedProps,
-    | "environmentId"
-    | "onUseArtifactTemplate"
-    | "skills"
-    | "dispatchingMessageId"
-    | "onEditPendingMessage"
+    "environmentId" | "skills" | "dispatchingMessageId" | "onEditPendingMessage"
   > & {
     readonly copiedRowId: string | null;
     readonly expandedWorkRows: Record<string, boolean>;
@@ -1696,7 +1604,6 @@ function renderFeedEntry(
               markdown={renderedText}
               markdownStyles={styles}
               linkHandlers={props.markdownLinkHandlers}
-              onUseArtifactTemplate={props.onUseArtifactTemplate}
               renderImage={props.renderMarkdownImage}
               skills={props.skills}
             />
@@ -2777,7 +2684,6 @@ export const ThreadFeed = memo(function ThreadFeed(props: ThreadFeedProps) {
             userBubbleMaxWidth,
             markdownContentWidth,
             skills: props.skills,
-            onUseArtifactTemplate: props.onUseArtifactTemplate,
           })}
           {props.worktreeSetup && info.index === setupAnchorIndex ? (
             <WorktreeSetupCard key={props.threadId} {...props.worktreeSetup} />
@@ -2821,7 +2727,6 @@ export const ThreadFeed = memo(function ThreadFeed(props: ThreadFeedProps) {
       onToggleWorkGroup,
       onToggleWorkRow,
       props.environmentId,
-      props.onUseArtifactTemplate,
       props.skills,
       renderMarkdownImage,
       renderViewedImage,

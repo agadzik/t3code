@@ -191,9 +191,9 @@ describe("formatDiagnosticsDescription", () => {
 
 describe("buildProviderInstanceUpdatePatch", () => {
   it("promotes an edited default provider into providerInstances and resets the legacy provider", () => {
-    const instanceId = ProviderInstanceId.make("codex");
+    const instanceId = ProviderInstanceId.make("testDriver");
     const nextInstance = {
-      driver: ProviderDriverKind.make("codex"),
+      driver: ProviderDriverKind.make("testDriver"),
       enabled: true,
       config: {
         binaryPath: "/opt/t3/codex",
@@ -203,28 +203,20 @@ describe("buildProviderInstanceUpdatePatch", () => {
     const patch = buildProviderInstanceUpdatePatch({
       settings: {
         ...DEFAULT_SERVER_SETTINGS,
-        providers: {
-          ...DEFAULT_SERVER_SETTINGS.providers,
-          codex: {
-            ...DEFAULT_SERVER_SETTINGS.providers.codex,
-            binaryPath: "/legacy/codex",
-          },
-        },
       },
       instanceId,
       instance: nextInstance,
-      driver: ProviderDriverKind.make("codex"),
+      driver: ProviderDriverKind.make("testDriver"),
       isDefault: true,
     });
 
     expect(patch.providerInstances?.[instanceId]).toEqual(nextInstance);
-    expect(patch.providers?.codex).toEqual(DEFAULT_SERVER_SETTINGS.providers.codex);
   });
 
   it("updates custom instances without touching legacy provider settings", () => {
-    const instanceId = ProviderInstanceId.make("codex_personal");
+    const instanceId = ProviderInstanceId.make("testDriver_personal");
     const nextInstance = {
-      driver: ProviderDriverKind.make("codex"),
+      driver: ProviderDriverKind.make("testDriver"),
       enabled: true,
       config: {
         homePath: "/Users/example/.codex-personal",
@@ -235,12 +227,11 @@ describe("buildProviderInstanceUpdatePatch", () => {
       settings: DEFAULT_SERVER_SETTINGS,
       instanceId,
       instance: nextInstance,
-      driver: ProviderDriverKind.make("codex"),
+      driver: ProviderDriverKind.make("testDriver"),
       isDefault: false,
     });
 
     expect(patch.providerInstances?.[instanceId]).toEqual(nextInstance);
-    expect(patch.providers).toBeUndefined();
   });
 });
 

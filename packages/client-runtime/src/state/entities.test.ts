@@ -88,7 +88,7 @@ const THREAD_SHELL = {
   id: THREAD_ID,
   projectId: PROJECT_ID,
   title: "Thread",
-  modelSelection: { instanceId: ProviderInstanceId.make("codex"), model: "gpt-5.4" },
+  modelSelection: { instanceId: ProviderInstanceId.make("testDriver"), model: "gpt-5.4" },
   runtimeMode: "full-access",
   interactionMode: "default",
   branch: null,
@@ -534,7 +534,7 @@ describe("environment entity projections", () => {
           session: {
             threadId: THREAD_ID,
             status: "ready",
-            providerName: "codex",
+            providerName: "testDriver",
             runtimeMode: "full-access",
             activeTurnId: null,
             lastError: null,

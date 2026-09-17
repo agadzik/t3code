@@ -49,7 +49,7 @@ const CONTEXT_WINDOW = selectDescriptor(
   "1m",
 );
 
-const CODEX = ProviderDriverKind.make("codex");
+const CODEX = ProviderDriverKind.make("testDriver");
 
 function display(descriptors: ReadonlyArray<ProviderOptionDescriptor>) {
   return buildTraitsTriggerDisplay({
@@ -75,14 +75,14 @@ describe("buildTraitsTriggerDisplay", () => {
     });
   });
 
-  it("treats Codex standard and fast service tiers as fast mode states", () => {
+  it("shows service-tier labels for a generic driver", () => {
     expect(display([EFFORT, serviceTierDescriptor("default")])).toEqual({
-      label: "High",
+      label: "High · Standard",
       showFastModeIcon: false,
     });
     expect(display([EFFORT, serviceTierDescriptor("priority")])).toEqual({
-      label: "High",
-      showFastModeIcon: true,
+      label: "High · Fast",
+      showFastModeIcon: false,
     });
   });
 
