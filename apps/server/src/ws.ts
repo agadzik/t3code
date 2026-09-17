@@ -143,6 +143,7 @@ import * as ServerEnvironment from "./environment/ServerEnvironment.ts";
 import * as RemoteOpenTargets from "./environment/RemoteOpenTargets.ts";
 import * as BackgroundPolicy from "./background/BackgroundPolicy.ts";
 import * as EnvironmentAuth from "./auth/EnvironmentAuth.ts";
+import { VercelAuthService } from "./vercel/VercelAuthService.ts";
 import { requiredScopeForRpcMethod } from "./auth/RpcAuthorization.ts";
 import * as ProcessDiagnostics from "./diagnostics/ProcessDiagnostics.ts";
 import * as ProcessResourceMonitor from "./diagnostics/ProcessResourceMonitor.ts";
@@ -635,6 +636,7 @@ const makeWsRpcLayer = (
         ),
       );
       const serverAuth = yield* EnvironmentAuth.EnvironmentAuth;
+      const vercelAuth = yield* VercelAuthService;
       const sourceControlDiscovery = yield* SourceControlDiscovery.SourceControlDiscovery;
       const automaticGitFetchInterval = serverSettings.getSettings.pipe(
         Effect.map(
@@ -1770,6 +1772,7 @@ const makeWsRpcLayer = (
             keybindings: keybindingsConfig.keybindings,
             issues: keybindingsConfig.issues,
             providers,
+            vercelAuth: yield* vercelAuth.getStatus(),
             availableEditors,
             // Same discovery-with-timeout treatment as editors: a slow probe
             // must not stall server.getConfig, so it degrades to no targets.
@@ -2439,6 +2442,30 @@ const makeWsRpcLayer = (
           observeRpcEffect(WS_METHODS.providerInstallRemove, providerInstallation.remove(input), {
             "rpc.aggregate": "provider",
           }),
+        [WS_METHODS.vercelAuthStart]: (_input) =>
+          observeRpcEffect(WS_METHODS.vercelAuthStart, vercelAuth.start(), {
+            "rpc.aggregate": "vercel",
+          }),
+        [WS_METHODS.vercelAuthGetStatus]: (_input) =>
+          observeRpcEffect(WS_METHODS.vercelAuthGetStatus, vercelAuth.getStatus(), {
+            "rpc.aggregate": "vercel",
+          }),
+        [WS_METHODS.vercelAuthLogout]: (_input) =>
+          observeRpcEffect(WS_METHODS.vercelAuthLogout, vercelAuth.logout(), {
+            "rpc.aggregate": "vercel",
+          }),
+        [WS_METHODS.vercelAuthSetApiToken]: (input) =>
+          observeRpcEffect(WS_METHODS.vercelAuthSetApiToken, vercelAuth.setApiToken(input.token), {
+            "rpc.aggregate": "vercel",
+          }),
+        [WS_METHODS.vercelAuthSetGatewayKey]: (input) =>
+          observeRpcEffect(
+            WS_METHODS.vercelAuthSetGatewayKey,
+            vercelAuth.setGatewayKey(input.key),
+            {
+              "rpc.aggregate": "vercel",
+            },
+          ),
         [WS_METHODS.serverUpdateServer]: (input) =>
           observeRpcEffect(WS_METHODS.serverUpdateServer, serverUpdate.update(input), {
             "rpc.aggregate": "server",
