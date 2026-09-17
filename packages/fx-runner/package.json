@@ -1,0 +1,33 @@
+{
+  "name": "@t3tools/fx-runner",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./protocol": {
+      "types": "./src/protocol.ts",
+      "import": "./src/protocol.ts"
+    },
+    "./entrypoint": {
+      "types": "./src/entrypoint.ts",
+      "import": "./src/entrypoint.ts"
+    },
+    "./models": {
+      "types": "./src/models.ts",
+      "import": "./src/models.ts"
+    }
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vp test run"
+  },
+  "dependencies": {
+    "effect": "catalog:",
+    "libfx": "0.0.10",
+    "ws": "8.21.3"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/ws": "8.18.1",
+    "vite-plus": "catalog:"
+  }
+}
