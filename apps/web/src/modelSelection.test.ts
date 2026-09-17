@@ -92,7 +92,7 @@ describe("instance-scoped model selection", () => {
       }),
     ];
     const entries = deriveProviderInstanceEntries(providers);
-    const stock = entries.find((entry) => entry.instanceId === "claudeAgent")!;
+    const stock = entries.find((entry) => entry.instanceId === "otherDriver")!;
     const openrouter = entries.find((entry) => entry.instanceId === "claude_openrouter")!;
 
     expect(
@@ -194,7 +194,7 @@ describe("instance-scoped model selection", () => {
       }),
     ];
     const stock = deriveProviderInstanceEntries(providers).find(
-      (entry) => entry.instanceId === "claudeAgent",
+      (entry) => entry.instanceId === "otherDriver",
     )!;
 
     expect(
@@ -221,7 +221,7 @@ describe("instance-scoped model selection", () => {
       },
     };
     const stock = deriveProviderInstanceEntries(providers).find(
-      (entry) => entry.instanceId === "claudeAgent",
+      (entry) => entry.instanceId === "otherDriver",
     )!;
 
     expect(getAppModelOptionsForInstance(settings, stock).map((option) => option.slug)).toEqual([
@@ -269,7 +269,7 @@ describe("instance-scoped model selection", () => {
       },
     };
     const stock = deriveProviderInstanceEntries(providers).find(
-      (entry) => entry.instanceId === "claudeAgent",
+      (entry) => entry.instanceId === "otherDriver",
     )!;
 
     expect(getAppModelOptionsForInstance(settings, stock).map((option) => option.slug)).toEqual([

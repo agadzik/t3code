@@ -194,8 +194,8 @@ describe("deriveProviderInstanceEntries", () => {
     });
     const [entry] = deriveProviderInstanceEntries([snapshot]);
 
-    expect(entry?.instanceId).toBe("codex_personal");
-    expect(entry?.driverKind).toBe("codex");
+    expect(entry?.instanceId).toBe("testDriver_personal");
+    expect(entry?.driverKind).toBe("testDriver");
     expect(entry?.isDefault).toBe(false);
   });
 });
@@ -377,7 +377,7 @@ describe("resolveProviderDriverKindForInstanceSelection", () => {
         providers,
         ProviderInstanceId.make("claude_openrouter"),
       ),
-    ).toBe("claudeAgent");
+    ).toBe("otherDriver");
   });
 
   it("does not guess a provider kind when the instance selection is unknown", () => {
