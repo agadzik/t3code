@@ -870,13 +870,7 @@ it.effect(
         ProviderAdapterRegistry.ProviderAdapterRegistry,
         registry,
       );
-      const serverSettingsLayer = ServerSettings.ServerSettingsService.layerTest({
-        providers: {
-          codex: {
-            enabled: false,
-          },
-        },
-      });
+      const serverSettingsLayer = ServerSettings.ServerSettingsService.layerTest({});
       const runtimeRepositoryLayer = ProviderSessionRuntime.layer.pipe(
         Layer.provide(SqlitePersistenceMemory),
       );

@@ -101,13 +101,13 @@ vi.mock("../../state/session", () => ({
 import { EnvironmentProviderSettings } from "./ProviderSettingsPanel";
 
 const environmentId = EnvironmentId.make("remote-device");
-const codexId = ProviderInstanceId.make("codex");
-const customId = ProviderInstanceId.make("codex_work");
+const codexId = ProviderInstanceId.make("testDriver");
+const customId = ProviderInstanceId.make("testDriver_work");
 
 function provider(): ServerProvider {
   return {
     instanceId: codexId,
-    driver: ProviderDriverKind.make("codex"),
+    driver: ProviderDriverKind.make("testDriver"),
     enabled: true,
     installed: true,
     version: "1.0.0",
@@ -212,7 +212,7 @@ describe("EnvironmentProviderSettings routing", () => {
 
     expect(commands.updateProvider).toHaveBeenCalledWith({
       environmentId,
-      input: { provider: ProviderDriverKind.make("codex"), instanceId: codexId },
+      input: { provider: ProviderDriverKind.make("testDriver"), instanceId: codexId },
     });
   });
 
@@ -220,7 +220,7 @@ describe("EnvironmentProviderSettings routing", () => {
     settingsState.value = {
       ...DEFAULT_UNIFIED_SETTINGS,
       providerInstances: {
-        [customId]: { driver: ProviderDriverKind.make("codex"), enabled: true },
+        [customId]: { driver: ProviderDriverKind.make("testDriver"), enabled: true },
       },
     };
     atoms.providers = [provider()];
@@ -265,7 +265,7 @@ describe("EnvironmentProviderSettings routing", () => {
       ...DEFAULT_UNIFIED_SETTINGS,
       providerInstances: {
         [customId]: {
-          driver: ProviderDriverKind.make("codex"),
+          driver: ProviderDriverKind.make("testDriver"),
           enabled: true,
         },
       },
@@ -329,11 +329,11 @@ describe("EnvironmentProviderSettings routing", () => {
       ...DEFAULT_UNIFIED_SETTINGS,
       providerInstances: {
         [codexId]: {
-          driver: ProviderDriverKind.make("codex"),
+          driver: ProviderDriverKind.make("testDriver"),
           enabled: false,
         },
         [customId]: {
-          driver: ProviderDriverKind.make("codex"),
+          driver: ProviderDriverKind.make("testDriver"),
           enabled: true,
         },
       },

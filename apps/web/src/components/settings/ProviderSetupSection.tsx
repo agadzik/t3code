@@ -4,8 +4,6 @@ import {
   type AtomCommandResult,
 } from "@t3tools/client-runtime/state/runtime";
 import {
-  ANTIGRAVITY_AUTH_METHODS,
-  type AntigravityAuthMethod,
   type EnvironmentId,
   type ProviderAuthState,
   type ProviderInstanceId,
@@ -30,20 +28,20 @@ interface ProviderSetupSectionProps {
   readonly instanceId: ProviderInstanceId;
   readonly provider: ServerProvider | undefined;
   readonly binaryPath?: string | undefined;
-  readonly authMethod?: AntigravityAuthMethod | undefined;
+  readonly authMethod?: string | undefined;
   readonly enabled: boolean;
   readonly readOnly: boolean;
   readonly onEnable: () => void;
 }
 
 const AUTH_PHASE_LABELS: Record<ProviderAuthState["phase"], string> = {
-  idle: "Sign in with your Google account.",
-  starting: "Starting Google sign-in.",
-  waiting: "Waiting for Google sign-in.",
-  verifying: "Checking Google sign-in and available models.",
-  succeeded: "Google sign-in complete.",
-  failed: "Google sign-in failed.",
-  cancelled: "Google sign-in cancelled.",
+  idle: "Sign in to this provider.",
+  starting: "Starting sign-in.",
+  waiting: "Waiting for sign-in.",
+  verifying: "Checking sign-in and available models.",
+  succeeded: "Sign-in complete.",
+  failed: "Sign-in failed.",
+  cancelled: "Sign-in cancelled.",
 };
 
 /** API key methods skip the browser, so the phases read as a credential check. */
@@ -57,22 +55,11 @@ const CREDENTIAL_PHASE_LABELS: Record<ProviderAuthState["phase"], string> = {
   cancelled: "Connection cancelled.",
 };
 
-/** Read the configured method from the instance config. Unknown values fall back to personal. */
-export function readAntigravityAuthMethod(config: unknown): AntigravityAuthMethod {
-  const value =
-    config !== null && typeof config === "object" && "authMethod" in config
-      ? config.authMethod
-      : undefined;
-  return (
-    ANTIGRAVITY_AUTH_METHODS.find((method) => method.value === value)?.value ?? "oauth-personal"
-  );
-}
-
 /** Setup state belongs to the selected environment and is never saved in client settings. */
 export function ProviderSetupSection(props: ProviderSetupSectionProps) {
   return (
     <section
-      aria-label="Antigravity setup"
+      aria-label="Provider setup"
       className="@container/setup divide-y divide-border/50 text-xs"
     >
       <SettingsRow
@@ -86,7 +73,7 @@ export function ProviderSetupSection(props: ProviderSetupSectionProps) {
             </span>
             {!props.enabled && !props.readOnly ? (
               <Button size="sm" variant="outline" onClick={props.onEnable}>
-                Enable Antigravity
+                Enable provider
               </Button>
             ) : null}
           </div>
@@ -97,7 +84,7 @@ export function ProviderSetupSection(props: ProviderSetupSectionProps) {
       ) : props.provider?.setup === undefined ? (
         <SettingsRow
           title="Update required"
-          description="Update this environment to manage Antigravity."
+          description="Update this environment to manage this provider."
         />
       ) : (
         <ProviderSetupActions
@@ -107,7 +94,7 @@ export function ProviderSetupSection(props: ProviderSetupSectionProps) {
           instanceId={props.instanceId}
           provider={props.provider}
           binaryPath={props.binaryPath}
-          authMethod={props.authMethod ?? "oauth-personal"}
+          authMethod={props.authMethod ?? "oauth"}
           enabled={props.enabled}
         />
       )}
@@ -128,14 +115,12 @@ function ProviderSetupActions({
   "environmentId" | "environmentLabel" | "instanceId" | "enabled" | "binaryPath"
 > & {
   readonly provider: ServerProvider;
-  readonly authMethod: AntigravityAuthMethod;
+  readonly authMethod: string;
 }) {
   const target = { environmentId, input: { instanceId } };
-  const usesBrowser = authMethod === "oauth-personal" || authMethod === "oauth-business";
+  const usesBrowser = Boolean(authMethod === "oauth" || authMethod === "oauth-business");
   const phaseLabels = usesBrowser ? AUTH_PHASE_LABELS : CREDENTIAL_PHASE_LABELS;
-  const methodLabel =
-    ANTIGRAVITY_AUTH_METHODS.find((method) => method.value === authMethod)?.label ??
-    "Google account";
+  const methodLabel = "Account";
   const authQuery = useEnvironmentQuery(serverEnvironment.providerAuthState(target));
   const installQuery = useEnvironmentQuery(serverEnvironment.providerInstallState(target));
   const auth = authQuery.data;
@@ -174,7 +159,7 @@ function ProviderSetupActions({
         ? (auth.message ?? phaseLabels[auth.phase])
         : authenticated
           ? usesBrowser
-            ? "Signed in with Google."
+            ? "Signed in."
             : "Connected."
           : auth.phase === "idle" && auth.message
             ? auth.message
@@ -186,15 +171,15 @@ function ProviderSetupActions({
     installation?.phase === "downloading"
       ? `Downloading ${(installation.downloadedBytes / 1_000_000).toFixed(1)} MB${installation.totalBytes === null ? "" : ` of ${(installation.totalBytes / 1_000_000).toFixed(1)} MB`}.`
       : installation?.phase === "extracting"
-        ? "Extracting Antigravity."
+        ? "Extracting the runtime."
         : installation?.phase === "verifying"
           ? "Checking the downloaded runtime."
           : installed
             ? "Installed."
             : usesCustomBinary
               ? enabled
-                ? "The configured Antigravity runtime is unavailable."
-                : "The configured Antigravity runtime has not been checked."
+                ? "The configured runtime is unavailable."
+                : "The configured runtime has not been checked."
               : installation?.totalBytes
                 ? `${Math.ceil(installation.totalBytes / 1_000_000)} MB download.`
                 : "Not installed.";
@@ -239,7 +224,7 @@ function ProviderSetupActions({
   async function copySignInLink() {
     if (!authorizationUrl) return;
     try {
-      await writeTextToClipboard(authorizationUrl, "Google sign-in link");
+      await writeTextToClipboard(authorizationUrl, "Sign-in link");
       setCopiedFlowId(auth?.flowId ?? null);
       setError(null);
     } catch {
@@ -260,7 +245,7 @@ function ProviderSetupActions({
 
   async function signOut() {
     const confirmed = await ensureLocalApi().dialogs.confirm(
-      `${usesBrowser ? "Sign out of Google" : "Disconnect"} for ${provider.displayName ?? "Antigravity"} on ${environmentLabel}? This stops its running threads. Thread history is kept.`,
+      `${usesBrowser ? "Sign out" : "Disconnect"} for ${provider.displayName ?? "this provider"} on ${environmentLabel}? This stops its running threads. Thread history is kept.`,
     );
     if (confirmed) {
       await runCommand("Signing out", () => logoutAuth(target));
@@ -269,7 +254,7 @@ function ProviderSetupActions({
 
   async function removeRuntime() {
     const confirmed = await ensureLocalApi().dialogs.confirm(
-      `Remove the downloaded Antigravity runtime from ${environmentLabel}? Google sign-in and thread history are kept.`,
+      `Remove the downloaded runtime from ${environmentLabel}? Sign-in and thread history are kept.`,
     );
     if (confirmed) {
       await runCommand("Removing runtime", () => removeInstall(target));
@@ -281,7 +266,7 @@ function ProviderSetupActions({
       <SettingsRow
         title="Runtime"
         className="@max-lg/setup:[&>div:first-child]:flex @max-lg/setup:[&>div:first-child]:items-stretch @max-lg/setup:[&>div:first-child]:gap-3"
-        description="Install and manage Antigravity."
+        description="Install and manage this provider."
         status={
           <div className="space-y-2">
             {usesCustomBinary ? (
@@ -306,7 +291,7 @@ function ProviderSetupActions({
               installation.totalBytes !== null &&
               installation.totalBytes > 0 ? (
                 <progress
-                  aria-label="Antigravity download"
+                  aria-label="Provider download"
                   className="block h-1 w-full accent-foreground"
                   value={installation.downloadedBytes}
                   max={installation.totalBytes}
@@ -349,13 +334,13 @@ function ProviderSetupActions({
                     {installation?.installedVersion
                       ? installation.version &&
                         installation.version !== installation.installedVersion
-                        ? "Update Antigravity"
-                        : "Reinstall Antigravity"
+                        ? "Update runtime"
+                        : "Reinstall runtime"
                       : installation?.phase === "failed" || installation?.phase === "cancelled"
                         ? "Retry installation"
                         : installed
                           ? "Install managed runtime"
-                          : "Install Antigravity"}
+                          : "Install runtime"}
                   </Button>
                 ) : null}
               </div>
@@ -386,9 +371,7 @@ function ProviderSetupActions({
       <SettingsRow
         title={methodLabel}
         className="@max-lg/setup:[&>div:first-child]:flex @max-lg/setup:[&>div:first-child]:items-stretch @max-lg/setup:[&>div:first-child]:gap-3"
-        description={
-          usesBrowser ? "Connect your Google account." : "Connect with the credentials below."
-        }
+        description={usesBrowser ? "Connect your account." : "Connect with the credentials below."}
         control={
           <div className="flex min-w-0 flex-col gap-2 sm:max-w-56 sm:items-end sm:text-right xl:max-w-72">
             <p
@@ -436,8 +419,8 @@ function ProviderSetupActions({
                 >
                   {usesBrowser
                     ? auth?.phase === "failed" || auth?.phase === "cancelled"
-                      ? "Retry Google sign-in"
-                      : "Sign in with Google"
+                      ? "Retry sign-in"
+                      : "Sign in"
                     : auth?.phase === "failed" || auth?.phase === "cancelled"
                       ? "Retry connection"
                       : "Connect"}
@@ -450,7 +433,7 @@ function ProviderSetupActions({
                   disabled={actionsDisabled || auth === null}
                   onClick={() => void signOut()}
                 >
-                  {usesBrowser ? "Sign out of Google" : "Disconnect"}
+                  {usesBrowser ? "Sign out" : "Disconnect"}
                 </Button>
               ) : null}
             </div>

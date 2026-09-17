@@ -1,9 +1,4 @@
-import {
-  ANTIGRAVITY_DEFAULT_MODEL,
-  ProviderDriverKind,
-  ProviderInstanceId,
-  type ServerProvider,
-} from "@t3tools/contracts";
+import { ProviderDriverKind, ProviderInstanceId, type ServerProvider } from "@t3tools/contracts";
 import { describe, expect, it } from "vite-plus/test";
 
 import { deriveProviderInstanceEntries } from "../../providerInstances";
@@ -14,7 +9,7 @@ import {
   shouldOfferModelPickerSetup,
 } from "./ModelPickerContent";
 
-function entry(status: ServerProvider["status"], driver = "opencode") {
+function entry(status: ServerProvider["status"], driver = "testDriver") {
   return deriveProviderInstanceEntries([
     {
       instanceId: ProviderInstanceId.make(`${driver}_work`),
@@ -33,34 +28,10 @@ function entry(status: ServerProvider["status"], driver = "opencode") {
 }
 
 describe("shouldIncludeModelPickerOption", () => {
-  it.each(["ready", "error"] as const)(
-    "never offers the internal Antigravity default marker as a model when %s",
+  it.each(["error", "warning"] as const)(
+    "keeps only the active unavailable row when the provider status is %s",
     (status) => {
-      const providerEntry = entry(status, "antigravity");
-      expect(
-        shouldIncludeModelPickerOption({
-          entry: providerEntry,
-          option: {
-            slug: ANTIGRAVITY_DEFAULT_MODEL,
-            name: ANTIGRAVITY_DEFAULT_MODEL,
-            isUnavailable: true,
-          },
-          activeInstanceId: providerEntry.instanceId,
-          activeModel: ANTIGRAVITY_DEFAULT_MODEL,
-        }),
-      ).toBe(false);
-    },
-  );
-
-  it.each([
-    ["opencode", "error"],
-    ["opencode", "warning"],
-    ["antigravity", "error"],
-    ["antigravity", "warning"],
-  ] as const)(
-    "keeps only the active synthetic %s row when the provider status is %s",
-    (driver, status) => {
-      const providerEntry = entry(status, driver);
+      const providerEntry = entry(status);
       const activeInstanceId = providerEntry.instanceId;
       const activeModel = "missing-model";
 
@@ -100,7 +71,7 @@ describe("shouldIncludeModelPickerOption", () => {
         shouldIncludeModelPickerOption({
           entry: providerEntry,
           option: { slug: activeModel, name: activeModel, isUnavailable: true },
-          activeInstanceId: ProviderInstanceId.make(`${driver}_personal`),
+          activeInstanceId: ProviderInstanceId.make("testDriver_personal"),
           activeModel,
         }),
       ).toBe(false);
@@ -109,60 +80,49 @@ describe("shouldIncludeModelPickerOption", () => {
 });
 
 describe("resolveModelPickerSelectedModel", () => {
-  it("follows the catalog default for the marker but keeps an explicit native model", () => {
-    const driverKind = ProviderDriverKind.make("antigravity");
-    const previousOptions = [
-      { slug: "gemini-fast", name: "Gemini Fast", aliases: [ANTIGRAVITY_DEFAULT_MODEL] },
-      { slug: "gemini-pro", name: "Gemini Pro" },
-    ];
-    const nextOptions = [
-      { slug: "gemini-fast", name: "Gemini Fast" },
-      { slug: "gemini-pro", name: "Gemini Pro", aliases: [ANTIGRAVITY_DEFAULT_MODEL] },
-    ];
-
+  it("returns the option whose slug matches the selected model", () => {
     expect(
       resolveModelPickerSelectedModel({
-        driverKind,
-        model: ANTIGRAVITY_DEFAULT_MODEL,
-        options: previousOptions,
+        driverKind: ProviderDriverKind.make("testDriver"),
+        model: "fast",
+        options: [
+          { slug: "fast", name: "Fast" },
+          { slug: "pro", name: "Pro" },
+        ],
       })?.slug,
-    ).toBe("gemini-fast");
-    expect(
-      resolveModelPickerSelectedModel({
-        driverKind,
-        model: ANTIGRAVITY_DEFAULT_MODEL,
-        options: nextOptions,
-      })?.slug,
-    ).toBe("gemini-pro");
-    expect(
-      resolveModelPickerSelectedModel({
-        driverKind,
-        model: "gemini-fast",
-        options: nextOptions,
-      })?.slug,
-    ).toBe("gemini-fast");
+    ).toBe("fast");
   });
 
-  it("does not guess the default from the first model in a catalog", () => {
+  it("returns undefined when no option matches", () => {
     expect(
       resolveModelPickerSelectedModel({
-        driverKind: ProviderDriverKind.make("antigravity"),
-        model: ANTIGRAVITY_DEFAULT_MODEL,
-        options: [{ slug: "gemini-fast", name: "Gemini Fast" }],
+        driverKind: ProviderDriverKind.make("testDriver"),
+        model: "missing",
+        options: [{ slug: "fast", name: "Fast" }],
       }),
     ).toBeUndefined();
   });
 });
 
 describe("shouldOfferModelPickerSetup", () => {
-  const availableModel = { slug: "gemini-3.1-pro", name: "Gemini 3.1 Pro" };
+  const availableModel = { slug: "model-pro", name: "Model Pro" };
 
-  it("offers setup before an Antigravity account has models", () => {
-    expect(shouldOfferModelPickerSetup(entry("error", "antigravity"), [])).toBe(true);
+  function withSetup(providerEntry: ReturnType<typeof entry>) {
+    return {
+      ...providerEntry,
+      snapshot: {
+        ...providerEntry.snapshot,
+        setup: { canAuthenticate: true, canInstall: false },
+      },
+    };
+  }
+
+  it("offers setup before an account has models", () => {
+    expect(shouldOfferModelPickerSetup(withSetup(entry("error")), [])).toBe(true);
   });
 
   it("offers setup after sign-out even if a model remains cached", () => {
-    const providerEntry = entry("ready", "antigravity");
+    const providerEntry = withSetup(entry("ready"));
     expect(
       shouldOfferModelPickerSetup(
         {
@@ -176,66 +136,52 @@ describe("shouldOfferModelPickerSetup", () => {
 
   it("offers setup when the only model is an unavailable saved selection", () => {
     expect(
-      shouldOfferModelPickerSetup(entry("ready", "antigravity"), [
+      shouldOfferModelPickerSetup(withSetup(entry("ready")), [
         { ...availableModel, isUnavailable: true },
       ]),
     ).toBe(true);
   });
 
   it("does not offer setup for a ready account with available models", () => {
-    expect(shouldOfferModelPickerSetup(entry("ready", "antigravity"), [availableModel])).toBe(
+    expect(shouldOfferModelPickerSetup(withSetup(entry("ready")), [availableModel])).toBe(false);
+  });
+
+  it("does not restore a disabled provider while its status snapshot is stale", () => {
+    expect(shouldOfferModelPickerSetup({ ...withSetup(entry("error")), enabled: false }, [])).toBe(
       false,
     );
   });
 
-  it("does not restore a disabled provider while its status snapshot is stale", () => {
-    expect(
-      shouldOfferModelPickerSetup({ ...entry("error", "antigravity"), enabled: false }, []),
-    ).toBe(false);
-  });
-
   it("keeps providers without integrated setup on their existing path", () => {
-    expect(shouldOfferModelPickerSetup(entry("error", "codex"), [])).toBe(false);
+    expect(shouldOfferModelPickerSetup(entry("error"), [])).toBe(false);
   });
 
   it("uses the environment's setup capability for other drivers", () => {
-    const providerEntry = entry("error", "custom_driver");
-    expect(
-      shouldOfferModelPickerSetup(
-        {
-          ...providerEntry,
-          snapshot: {
-            ...providerEntry.snapshot,
-            setup: { canAuthenticate: true, canInstall: false },
-          },
-        },
-        [],
-      ),
-    ).toBe(true);
+    expect(shouldOfferModelPickerSetup(withSetup(entry("error", "custom_driver")), [])).toBe(true);
   });
 });
 
 describe("adjacentModelPickerProvider", () => {
-  const codex = entry("ready", "codex");
-  const claude = entry("ready", "claudeAgent");
+  const first = entry("ready", "alpha");
+  const second = entry("ready", "beta");
   const unavailable = entry("error");
   const input = {
-    entries: [codex, unavailable, claude],
+    entries: [first, unavailable, second],
     disabledInstanceIds: undefined,
     selectableUnavailableInstanceIds: undefined,
   };
 
   it("wraps through favorites and ready instances, skipping unavailable providers", () => {
     expect(
-      adjacentModelPickerProvider({ ...input, selectedInstanceId: codex.instanceId, direction: 1 }),
-    ).toBe(claude.instanceId);
+      adjacentModelPickerProvider({ ...input, selectedInstanceId: first.instanceId, direction: 1 }),
+    ).toBe(second.instanceId);
     expect(
       adjacentModelPickerProvider({ ...input, selectedInstanceId: "favorites", direction: -1 }),
-    ).toBe(claude.instanceId);
+    ).toBe(second.instanceId);
     expect(
       adjacentModelPickerProvider({
         ...input,
-        selectedInstanceId: claude.instanceId,
+        selectedInstanceId: second.instanceId,
         direction: 1,
       }),
     ).toBe("favorites");
@@ -245,8 +191,8 @@ describe("adjacentModelPickerProvider", () => {
     expect(
       adjacentModelPickerProvider({
         ...input,
-        disabledInstanceIds: new Set([claude.instanceId]),
-        selectedInstanceId: codex.instanceId,
+        disabledInstanceIds: new Set([second.instanceId]),
+        selectedInstanceId: first.instanceId,
         direction: 1,
       }),
     ).toBe("favorites");
@@ -254,7 +200,7 @@ describe("adjacentModelPickerProvider", () => {
       adjacentModelPickerProvider({
         ...input,
         selectableUnavailableInstanceIds: new Set([unavailable.instanceId]),
-        selectedInstanceId: codex.instanceId,
+        selectedInstanceId: first.instanceId,
         direction: 1,
       }),
     ).toBe(unavailable.instanceId);
@@ -265,7 +211,7 @@ describe("adjacentModelPickerProvider", () => {
       adjacentModelPickerProvider({
         ...input,
         entries: [],
-        selectedInstanceId: codex.instanceId,
+        selectedInstanceId: first.instanceId,
         direction: -1,
       }),
     ).toBe("favorites");
@@ -282,6 +228,6 @@ describe("adjacentModelPickerProvider", () => {
         selectedInstanceId: unavailable.instanceId,
         direction: -1,
       }),
-    ).toBe(claude.instanceId);
+    ).toBe(second.instanceId);
   });
 });

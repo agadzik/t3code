@@ -8,23 +8,15 @@ import {
   CheckIcon,
   ChevronRightIcon,
   CopyIcon,
-  FileSpreadsheetIcon,
-  FileTextIcon,
   GlobeIcon,
-  ImageIcon,
   InfoIcon,
   LightbulbIcon,
-  MailIcon,
   Maximize2Icon,
-  MessageSquareIcon,
   MessageSquareWarningIcon,
   Minimize2Icon,
   OctagonAlertIcon,
-  PresentationIcon,
-  SparklesIcon,
   TriangleAlertIcon,
   WrapTextIcon,
-  type LucideIcon,
 } from "lucide-react";
 import type {
   AssetResource,
@@ -40,11 +32,6 @@ import {
   squashAtomCommandFailure,
   type AtomCommandResult,
 } from "@t3tools/client-runtime/state/runtime";
-import {
-  codexArtifactTemplatePresentationLabel,
-  type CodexArtifactTemplate,
-  type CodexArtifactTemplateKind,
-} from "@t3tools/client-runtime/codex-artifact-templates";
 import {
   classifyMarkdownImageSource,
   markdownImageSourceFragment,
@@ -90,11 +77,10 @@ import { AssistantCitationChip } from "./chat/AssistantCitationChip";
 import remarkGfm from "remark-gfm";
 import { remarkGithubAlerts } from "../markdown-github-alerts";
 import {
-  artifactTemplateFromHastProperties,
-  CODEX_ARTIFACT_TEMPLATE_HAST_PROPERTIES,
-  remarkCodexDirectives,
-  renderCodexFileCitationsAsMarkdown,
-} from "@t3tools/client-runtime/codex-markdown-directives";
+  ARTIFACT_TEMPLATE_HAST_PROPERTIES,
+  remarkFileCitationDirectives,
+  renderFileCitationsAsMarkdown,
+} from "@t3tools/client-runtime/file-citation-markdown-directives";
 import { renderSkillInlineMarkdownChildren } from "./chat/SkillInlineText";
 import {
   resolveMarkdownMediaPreview,
@@ -212,8 +198,6 @@ interface ChatMarkdownProps {
   lineBreaks?: boolean;
   /** Parse sanitized raw HTML instead of displaying its source text. */
   parseRawHtml?: boolean;
-  /** Append a prompt that invokes a newly created artifact-template skill. */
-  onUseArtifactTemplate?: ((template: CodexArtifactTemplate) => void) | undefined;
   /** Directory that anchors relative links and images; defaults to `cwd`. Set
       to the file's own directory when rendering a markdown file. */
   imageBaseDir?: string | undefined;
@@ -273,64 +257,6 @@ export function shouldUseMarkdownFileBrowserPrimaryAction(input: {
 
 const EMPTY_MARKDOWN_SKILLS: ReadonlyArray<Pick<ServerProviderSkill, "name" | "displayName">> = [];
 const EMPTY_REMARK_PLUGINS: NonNullable<ReactMarkdownOptions["remarkPlugins"]> = [];
-
-const ARTIFACT_TEMPLATE_ICON_BY_KIND = {
-  document: FileTextIcon,
-  presentation: PresentationIcon,
-  spreadsheet: FileSpreadsheetIcon,
-  site: GlobeIcon,
-  "google-docs": FileTextIcon,
-  "google-slides": PresentationIcon,
-  "google-sheets": FileSpreadsheetIcon,
-  image: ImageIcon,
-  email: MailIcon,
-  slack: MessageSquareIcon,
-} satisfies Record<CodexArtifactTemplateKind, LucideIcon>;
-
-function CodexArtifactTemplateCard(props: {
-  readonly template: CodexArtifactTemplate;
-  readonly onUse?: ((template: CodexArtifactTemplate) => void) | undefined;
-}) {
-  const Icon = ARTIFACT_TEMPLATE_ICON_BY_KIND[props.template.artifactKind];
-  const presentationLabel = codexArtifactTemplatePresentationLabel(props.template.artifactKind);
-
-  return (
-    <div
-      role="group"
-      aria-label={`${props.template.displayName} template`}
-      className="chat-markdown-artifact-template my-[0.65rem] flex w-full min-w-0 items-center gap-3 rounded-xl border border-border/70 bg-card/60 px-3 py-2.5 text-foreground shadow-xs"
-      data-artifact-kind={props.template.artifactKind}
-      data-markdown-copy={`${props.template.displayName} (${presentationLabel})\n\n`}
-      data-skill-name={props.template.skillName}
-    >
-      <div className="flex min-w-0 flex-1 items-center gap-3">
-        <span className="relative flex size-9 shrink-0 items-center justify-center rounded-lg border border-border/70 bg-background text-muted-foreground shadow-xs">
-          <Icon aria-hidden className="size-5" />
-          <span className="absolute -right-1 -bottom-1 flex size-4 items-center justify-center rounded-full border border-background bg-fuchsia-500 text-white shadow-xs">
-            <SparklesIcon aria-hidden className="size-2.5" />
-          </span>
-        </span>
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-medium text-foreground">
-            {props.template.displayName}
-          </span>
-          <span className="block text-xs text-muted-foreground">{presentationLabel}</span>
-        </span>
-      </div>
-      {props.onUse ? (
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          className="shrink-0"
-          onClick={() => props.onUse?.(props.template)}
-        >
-          Use template
-        </Button>
-      ) : null}
-    </div>
-  );
-}
 
 const CODE_FENCE_LANGUAGE_REGEX = /(?:^|\s)language-([^\s]+)/;
 const WINDOWS_DRIVE_PATH_REGEX = /^[A-Za-z]:[\\/]/;
@@ -468,7 +394,7 @@ const CHAT_MARKDOWN_SANITIZE_SCHEMA = {
     "*": (defaultSchema.attributes?.["*"] ?? []).filter((attribute) => attribute !== "title"),
     code: [...(defaultSchema.attributes?.code ?? []), "dataCodeMeta", "dataInlineCode"],
     blockquote: [...(defaultSchema.attributes?.blockquote ?? []), "dataAlert"],
-    div: [...(defaultSchema.attributes?.div ?? []), ...CODEX_ARTIFACT_TEMPLATE_HAST_PROPERTIES],
+    div: [...(defaultSchema.attributes?.div ?? []), ...ARTIFACT_TEMPLATE_HAST_PROPERTIES],
     a: [...(defaultSchema.attributes?.a ?? []), "dataPullRequestAutolink"],
     img: [
       ...(defaultSchema.attributes?.img ?? []),
@@ -488,7 +414,7 @@ const CHAT_MARKDOWN_REMARK_PLUGINS = [
   remarkGfm,
   remarkGithubAlerts,
   remarkNormalizeListItemIndentation,
-  remarkCodexDirectives,
+  remarkFileCitationDirectives,
   remarkPreserveCodeMeta,
   remarkNormalizeLinksAndTagInlineCode,
 ] satisfies NonNullable<ReactMarkdownOptions["remarkPlugins"]>;
@@ -497,7 +423,7 @@ const CHAT_MARKDOWN_REMARK_PLUGINS_WITH_BREAKS = [
   remarkGfm,
   remarkGithubAlerts,
   remarkNormalizeListItemIndentation,
-  remarkCodexDirectives,
+  remarkFileCitationDirectives,
   remarkBreaks,
   remarkPreserveCodeMeta,
   remarkNormalizeLinksAndTagInlineCode,
@@ -2255,7 +2181,6 @@ function useChatMarkdownState({
   onTaskListChange,
   isStreaming = false,
   skills = EMPTY_MARKDOWN_SKILLS,
-  onUseArtifactTemplate,
   imageBaseDir,
   onImageExpand,
   renderContextReference,
@@ -2373,7 +2298,7 @@ function useChatMarkdownState({
       string,
       NonNullable<ReturnType<typeof resolveMarkdownFileLinkMeta>>
     >();
-    for (const href of extractMarkdownLinkHrefs(renderCodexFileCitationsAsMarkdown(text))) {
+    for (const href of extractMarkdownLinkHrefs(renderFileCitationsAsMarkdown(text))) {
       if (parseComposerContextHref(href)) continue;
       const normalizedHref = normalizeMarkdownLinkHrefKey(href);
       if (metaByHref.has(normalizedHref)) continue;
@@ -2667,7 +2592,6 @@ function useChatMarkdownState({
       linkTargetPreference,
       markdownFileLinkMetaByHref,
       onTaskListChange,
-      onUseArtifactTemplate,
       openChangeRequestLink,
       openDeferredMarkdownLink,
       openExternalLinkInPreview,
@@ -2697,7 +2621,6 @@ function useChatMarkdownState({
       linkTargetPreference,
       markdownFileLinkMetaByHref,
       onTaskListChange,
-      onUseArtifactTemplate,
       openChangeRequestLink,
       openDeferredMarkdownLink,
       openExternalLinkInPreview,
@@ -2754,14 +2677,7 @@ const CHAT_MARKDOWN_COMPONENTS = {
   h4: markdownHeadingRenderer(4),
   h5: markdownHeadingRenderer(5),
   h6: markdownHeadingRenderer(6),
-  div: function MarkdownDiv({ node, children, ...props }) {
-    const { onUseArtifactTemplate } = use(ChatMarkdownRendererContext);
-    const artifactTemplate = artifactTemplateFromHastProperties(node?.properties);
-    if (artifactTemplate) {
-      return (
-        <CodexArtifactTemplateCard template={artifactTemplate} onUse={onUseArtifactTemplate} />
-      );
-    }
+  div: function MarkdownDiv({ node: _node, children, ...props }) {
     return <div {...props}>{children}</div>;
   },
   p: function MarkdownParagraph({ node: _node, children, ...props }) {

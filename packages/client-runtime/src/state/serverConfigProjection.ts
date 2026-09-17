@@ -35,10 +35,9 @@ export function applyServerConfigProjection(
         capabilities.environmentThemes === true && Option.isSome(current)
           ? current.value.config.environmentThemes
           : undefined;
-      const carriedSources =
-        capabilities.usageLimitSources === true && Option.isSome(current)
-          ? current.value.config.usageLimitSources
-          : undefined;
+      const carriedSources = Option.isSome(current)
+        ? current.value.config.usageLimitSources
+        : undefined;
       return Option.some({
         config: {
           ...event.config,

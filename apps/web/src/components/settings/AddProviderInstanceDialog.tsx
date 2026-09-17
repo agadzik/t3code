@@ -1,7 +1,7 @@
 "use client";
 
 import { Radio as RadioPrimitive } from "@base-ui/react/radio";
-import { CheckIcon } from "lucide-react";
+
 import { useMemo, useState } from "react";
 import {
   ProviderInstanceId,
@@ -20,7 +20,7 @@ import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import { RadioGroup } from "../ui/radio-group";
 import { toastManager } from "../ui/toast";
-import { DRIVER_OPTION_BY_VALUE, DRIVER_OPTIONS } from "./providerDriverMeta";
+import { getDriverOption } from "./providerDriverMeta";
 import { ProviderSettingsForm, deriveProviderSettingsFields } from "./ProviderSettingsForm";
 import { WizardPanel, WizardPopup, WizardHeader, WizardFooter } from "../ui/wizard";
 import {
@@ -42,7 +42,7 @@ const PROVIDER_ACCENT_SWATCHES = [
 /**
  * Normalize a user-provided label into a slug suffix for the instance id.
  * The full id is formed by prefixing the driver slug — e.g. label "Work" on
- * driver "codex" becomes `codex_work`. Output is trimmed to 48 chars so the
+ * driver "fx" becomes `fx_work`. Output is trimmed to 48 chars so the
  * final composed id stays under the 64-char slug cap enforced by
  * `ProviderInstanceId` in `@t3tools/contracts`.
  */
@@ -61,9 +61,8 @@ function deriveInstanceId(driver: ProviderDriverKind, label: string): string {
 }
 
 const INSTANCE_ID_PATTERN = /^[a-zA-Z][a-zA-Z0-9_-]*$/;
-const DEFAULT_DRIVER_KIND = ProviderDriverKind.make("codex");
-const DEFAULT_DRIVER_OPTION = DRIVER_OPTIONS[0]!;
 const EMPTY_CONFIG_DRAFT: Record<string, unknown> = {};
+
 interface ComingSoonDriverOption {
   readonly value: ProviderDriverKind;
   readonly label: string;
@@ -125,7 +124,7 @@ export function AddProviderInstanceDialog({
   const updateSettings = useUpdateEnvironmentSettings(environmentId);
 
   const [wizardStep, setWizardStep] = useState(0);
-  const [driver, setDriver] = useState<ProviderDriverKind>(DEFAULT_DRIVER_KIND);
+  const [driver, setDriver] = useState<ProviderDriverKind | null>(null);
   const [label, setLabel] = useState("");
   const [accentColor, setAccentColor] = useState<string>("");
   const [instanceIdOverride, setInstanceIdOverride] = useState<string | null>(null);
@@ -141,25 +140,26 @@ export function AddProviderInstanceDialog({
     [settings.providerInstances],
   );
 
-  const driverOption = DRIVER_OPTION_BY_VALUE[driver] ?? DEFAULT_DRIVER_OPTION;
-  const instanceId = instanceIdOverride ?? deriveInstanceId(driver, label);
+  const driverOption = getDriverOption(driver ?? undefined);
+  const instanceId = instanceIdOverride ?? (driver ? deriveInstanceId(driver, label) : "");
   const driverSettingsFields = useMemo(
-    () => deriveProviderSettingsFields(driverOption),
+    () => (driverOption ? deriveProviderSettingsFields(driverOption) : []),
     [driverOption],
   );
   const instanceIdError = validateInstanceId(instanceId, existingIds);
   const showInstanceIdError = hasAttemptedSubmit && instanceIdError !== null;
-  const previewLabel = label.trim() || `${driverOption.label} Workspace`;
-  const wizardStepSummaries = [driverOption.label, previewLabel, null] as const;
+  const previewLabel =
+    label.trim() || (driverOption ? `${driverOption.label} Workspace` : "Workspace");
+  const wizardStepSummaries = [driverOption?.label ?? "Driver", previewLabel, null] as const;
 
-  const configDraft = configByDriver[driver] ?? EMPTY_CONFIG_DRAFT;
+  const configDraft = (driver ? configByDriver[driver] : undefined) ?? EMPTY_CONFIG_DRAFT;
   const setConfigDraft = (config: Record<string, unknown> | undefined) => {
     setConfigByDriver((existing) => {
       const next = { ...existing };
       if (config === undefined || Object.keys(config).length === 0) {
-        delete next[driver];
+        if (driver) delete next[driver];
       } else {
-        next[driver] = config;
+        if (driver) next[driver] = config;
       }
       return next;
     });
@@ -182,7 +182,7 @@ export function AddProviderInstanceDialog({
 
   const handleSave = () => {
     setHasAttemptedSubmit(true);
-    if (instanceIdError !== null) return;
+    if (driver === null || instanceIdError !== null) return;
 
     const config = configByDriver[driver] ?? {};
     const hasConfig = Object.keys(config).length > 0;
@@ -209,7 +209,7 @@ export function AddProviderInstanceDialog({
       toastManager.add({
         type: "success",
         title: "Provider instance added",
-        description: `${driverOption.label} instance '${instanceId}' was added.`,
+        description: `${driverOption?.label ?? "Provider"} instance '${instanceId}' was added.`,
       });
       onOpenChange(false);
     } catch (error) {
@@ -229,7 +229,7 @@ export function AddProviderInstanceDialog({
           description={
             <>
               Configure an additional provider instance on {environmentLabel} — for example, a
-              second Codex install pointed at a different workspace.
+              second install pointed at a different workspace.
             </>
           }
         >
@@ -247,37 +247,11 @@ export function AddProviderInstanceDialog({
               Driver
             </div>
             <RadioGroup
-              value={driver}
+              value={driver ?? ""}
               onValueChange={(value) => setDriver(ProviderDriverKind.make(value))}
               aria-labelledby="add-instance-driver-label"
               className="grid grid-cols-1 gap-2 sm:grid-cols-2"
             >
-              {DRIVER_OPTIONS.map((option) => {
-                const IconComponent = option.icon;
-                return (
-                  <RadioPrimitive.Root
-                    key={option.value}
-                    value={option.value}
-                    className="relative flex cursor-pointer items-center gap-3 rounded-lg bg-card px-3 py-3 text-left text-muted-foreground outline-none ring-1 ring-black/5 hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-ring data-checked:bg-primary/8 data-checked:text-foreground data-checked:ring-2 data-checked:ring-primary data-checked:hover:bg-primary/8 dark:bg-white/3 dark:ring-white/5 dark:hover:bg-white/5 dark:data-checked:bg-primary/15 dark:data-checked:ring-primary dark:data-checked:hover:bg-primary/15"
-                  >
-                    <IconComponent className="size-4 shrink-0" aria-hidden />
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
-                      {option.label}
-                    </span>
-                    <RadioPrimitive.Indicator
-                      className="grid size-5 shrink-0 place-items-center rounded-full bg-primary text-primary-foreground"
-                      aria-hidden
-                    >
-                      <CheckIcon className="size-3.5 shrink-0" />
-                    </RadioPrimitive.Indicator>
-                    {option.badgeLabel ? (
-                      <Badge variant="warning" size="sm">
-                        {option.badgeLabel}
-                      </Badge>
-                    ) : null}
-                  </RadioPrimitive.Root>
-                );
-              })}
               {COMING_SOON_DRIVER_OPTIONS.map((option) => {
                 const IconComponent = option.icon;
                 return (
@@ -385,7 +359,7 @@ export function AddProviderInstanceDialog({
           {driverSettingsFields.length > 0 ? (
             <div className={cn("grid gap-4", wizardStep !== 2 && "hidden")}>
               <ProviderSettingsForm
-                definition={driverOption}
+                definition={driverOption!}
                 value={configDraft}
                 idPrefix={`add-provider-${driver}`}
                 variant="dialog"

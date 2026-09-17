@@ -31,6 +31,10 @@ export interface ProviderSettingsFieldModel {
   readonly options?: ReadonlyArray<ProviderSettingsFormOption> | undefined;
 }
 
+type ProviderSettingsFieldSchema = NonNullable<
+  ProviderClientDefinition["settingsSchema"]
+>["fields"][string];
+
 function titleizeFieldKey(key: string): string {
   return key
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
@@ -38,14 +42,12 @@ function titleizeFieldKey(key: string): string {
     .replace(/^./, (char) => char.toUpperCase());
 }
 
-function readFieldAnnotations(
-  fieldSchema: ProviderClientDefinition["settingsSchema"]["fields"][string],
-) {
+function readFieldAnnotations(fieldSchema: ProviderSettingsFieldSchema) {
   return Schema.resolveAnnotationsKey(fieldSchema) ?? Schema.resolveAnnotations(fieldSchema);
 }
 
 function readFieldAnnotationString(
-  fieldSchema: ProviderClientDefinition["settingsSchema"]["fields"][string],
+  fieldSchema: ProviderSettingsFieldSchema,
   key: "title" | "description",
 ): string | undefined {
   const annotations = readFieldAnnotations(fieldSchema);
@@ -54,7 +56,7 @@ function readFieldAnnotationString(
 }
 
 function readProviderSettingsFormAnnotation(
-  fieldSchema: ProviderClientDefinition["settingsSchema"]["fields"][string],
+  fieldSchema: ProviderSettingsFieldSchema,
 ): ProviderSettingsFormAnnotation {
   const annotation = readFieldAnnotations(fieldSchema)?.providerSettingsForm;
   return annotation ?? {};
@@ -63,12 +65,11 @@ function readProviderSettingsFormAnnotation(
 function readProviderSettingsFormSchemaAnnotation(
   definition: ProviderClientDefinition,
 ): ProviderSettingsFormSchemaAnnotation {
+  if (!definition.settingsSchema) return {};
   return Schema.resolveAnnotations(definition.settingsSchema)?.providerSettingsFormSchema ?? {};
 }
 
-function readFieldBooleanDefault(
-  fieldSchema: ProviderClientDefinition["settingsSchema"]["fields"][string],
-): boolean | undefined {
+function readFieldBooleanDefault(fieldSchema: ProviderSettingsFieldSchema): boolean | undefined {
   const decodeDefault = Schema.decodeUnknownOption(fieldSchema as Schema.Decoder<unknown>);
   const decoded = decodeDefault(undefined);
   return Option.isSome(decoded) && typeof decoded.value === "boolean" ? decoded.value : undefined;
@@ -77,13 +78,14 @@ function readFieldBooleanDefault(
 export function deriveProviderSettingsFields(
   definition: ProviderClientDefinition,
 ): ReadonlyArray<ProviderSettingsFieldModel> {
+  if (!definition.settingsSchema) return [];
   const schemaAnnotation = readProviderSettingsFormSchemaAnnotation(definition);
   const orderedKeys = new Map(
     (schemaAnnotation.order ?? []).map((key, index) => [key, index] as const),
   );
   const orderFallbackOffset = orderedKeys.size;
 
-  return Object.keys(definition.settingsSchema.fields)
+  return Object.keys(definition.settingsSchema!.fields)
     .map((key, index) => ({ key, index }))
     .toSorted((left, right) => {
       return (
@@ -92,7 +94,7 @@ export function deriveProviderSettingsFields(
       );
     })
     .flatMap(({ key }) => {
-      const fieldSchema = definition.settingsSchema.fields[key]!;
+      const fieldSchema = definition.settingsSchema!.fields[key]!;
       const formAnnotation = readProviderSettingsFormAnnotation(fieldSchema);
       if (formAnnotation.hidden) return [];
 

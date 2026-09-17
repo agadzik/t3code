@@ -17,7 +17,7 @@ function claudeProvider(input: {
 }): ServerProvider {
   return {
     instanceId: ProviderInstanceId.make(input.instanceId),
-    driver: ProviderDriverKind.make("claudeAgent"),
+    driver: ProviderDriverKind.make("otherDriver"),
     continuation: { groupKey: input.continuationGroupKey },
     enabled: input.enabled ?? true,
     installed: true,
@@ -32,7 +32,7 @@ function claudeProvider(input: {
 }
 
 describe("hasAvailableCompactionProvider", () => {
-  const originalInstanceId = ProviderInstanceId.make("claude_original");
+  const originalInstanceId = ProviderInstanceId.make("otherDriver_original");
 
   it("rejects a fallback in a different locked continuation group", () => {
     const providers = deriveProviderInstanceEntries([
@@ -50,7 +50,7 @@ describe("hasAvailableCompactionProvider", () => {
     expect(
       hasAvailableCompactionProvider({
         providers,
-        driverKind: ProviderDriverKind.make("claudeAgent"),
+        driverKind: ProviderDriverKind.make("otherDriver"),
         instanceId: originalInstanceId,
         lockedInstanceId: originalInstanceId,
       }),
@@ -73,7 +73,7 @@ describe("hasAvailableCompactionProvider", () => {
     expect(
       hasAvailableCompactionProvider({
         providers,
-        driverKind: ProviderDriverKind.make("claudeAgent"),
+        driverKind: ProviderDriverKind.make("otherDriver"),
         instanceId: originalInstanceId,
         lockedInstanceId: originalInstanceId,
       }),
@@ -83,8 +83,8 @@ describe("hasAvailableCompactionProvider", () => {
 
 describe("resolveContextWindowModelDisplayName", () => {
   it("uses the selected model from the exact provider instance", () => {
-    const primaryInstanceId = ProviderInstanceId.make("codex");
-    const selectedInstanceId = ProviderInstanceId.make("codex-work");
+    const primaryInstanceId = ProviderInstanceId.make("testDriver");
+    const selectedInstanceId = ProviderInstanceId.make("testDriver-work");
     const modelOptionsByInstance = new Map([
       [
         primaryInstanceId,
@@ -105,7 +105,7 @@ describe("resolveContextWindowModelDisplayName", () => {
   });
 
   it("falls back to the selected model slug when model metadata is unavailable", () => {
-    const selectedInstanceId = ProviderInstanceId.make("codex-work");
+    const selectedInstanceId = ProviderInstanceId.make("testDriver-work");
 
     expect(
       resolveContextWindowModelDisplayName(
@@ -145,7 +145,7 @@ describe("shouldOfferResumeCompaction", () => {
   it("matches Claude's old-session age and context thresholds", () => {
     expect(
       shouldOfferResumeCompaction({
-        provider: "claudeAgent",
+        provider: "otherDriver",
         usedTokens: 100_000,
         updatedAt: "2026-08-24T10:50:00.000Z",
         now,
@@ -156,7 +156,7 @@ describe("shouldOfferResumeCompaction", () => {
   it("does not prompt for recent or smaller sessions", () => {
     expect(
       shouldOfferResumeCompaction({
-        provider: "claudeAgent",
+        provider: "otherDriver",
         usedTokens: 99_999,
         updatedAt: "2026-08-24T10:00:00.000Z",
         now,
@@ -164,7 +164,7 @@ describe("shouldOfferResumeCompaction", () => {
     ).toBe(false);
     expect(
       shouldOfferResumeCompaction({
-        provider: "claudeAgent",
+        provider: "otherDriver",
         usedTokens: 200_000,
         updatedAt: "2026-08-24T10:51:00.000Z",
         now,
@@ -175,7 +175,7 @@ describe("shouldOfferResumeCompaction", () => {
   it("does not show Claude's resume prompt for another provider", () => {
     expect(
       shouldOfferResumeCompaction({
-        provider: "codex",
+        provider: "testDriver",
         usedTokens: 300_000,
         updatedAt: "2026-08-24T09:00:00.000Z",
         now,

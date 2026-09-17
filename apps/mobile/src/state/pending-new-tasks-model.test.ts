@@ -70,7 +70,7 @@ describe("buildPendingNewTasks", () => {
       queuedMessages: [],
       drafts: {
         "new-task:settings-only": draft("", "2026-09-05T09:00:00.000Z", {
-          modelSelection: { instanceId: "codex" as never, model: "gpt" },
+          modelSelection: { instanceId: "testDriver" as never, model: "gpt" },
         }),
         "new-task:blank": draft("   ", "2026-09-05T09:00:00.000Z"),
         "new-task:unstamped": { text: "no project", attachments: [] },

@@ -24,10 +24,10 @@ import { CustomModelEditor } from "./CustomModelEditor";
  * UX is unchanged — only the owning component has moved.
  */
 const CUSTOM_MODEL_PLACEHOLDER_BY_KIND: Partial<Record<ProviderDriverKind, string>> = {
-  [ProviderDriverKind.make("codex")]: "gpt-6.7-codex-ultra-preview",
-  [ProviderDriverKind.make("claudeAgent")]: "claude-sonnet-5",
+  [ProviderDriverKind.make("testDriver")]: "gpt-6.7-codex-ultra-preview",
+  [ProviderDriverKind.make("otherDriver")]: "claude-sonnet-5",
   [ProviderDriverKind.make("cursor")]: "claude-sonnet-4-6",
-  [ProviderDriverKind.make("opencode")]: "openai/gpt-5",
+  [ProviderDriverKind.make("thirdDriver")]: "openai/gpt-5",
 };
 
 /** Above this many models the list gets a filter input. */

@@ -51,17 +51,13 @@
       "types": "./src/mediaActions.ts",
       "default": "./src/mediaActions.ts"
     },
-    "./codex-file-citations": {
-      "types": "./src/codexFileCitations.ts",
-      "default": "./src/codexFileCitations.ts"
+    "./file-citations": {
+      "types": "./src/fileCitations.ts",
+      "default": "./src/fileCitations.ts"
     },
-    "./codex-artifact-templates": {
-      "types": "./src/codexArtifactTemplates.ts",
-      "default": "./src/codexArtifactTemplates.ts"
-    },
-    "./codex-markdown-directives": {
-      "types": "./src/codexMarkdownDirectives.ts",
-      "default": "./src/codexMarkdownDirectives.ts"
+    "./file-citation-markdown-directives": {
+      "types": "./src/fileCitationMarkdownDirectives.ts",
+      "default": "./src/fileCitationMarkdownDirectives.ts"
     },
     "./errors": {
       "types": "./src/errors/index.ts",
@@ -182,6 +178,10 @@
     "./state/usage": {
       "types": "./src/state/usage.ts",
       "default": "./src/state/usage.ts"
+    },
+    "./usageLimits": {
+      "types": "./src/usageLimits.ts",
+      "default": "./src/usageLimits.ts"
     },
     "./state/server": {
       "types": "./src/state/server.ts",

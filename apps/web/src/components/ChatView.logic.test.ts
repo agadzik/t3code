@@ -1,5 +1,4 @@
 import {
-  ANTIGRAVITY_DEFAULT_MODEL,
   CheckpointRef,
   EnvironmentId,
   EventId,
@@ -19,7 +18,7 @@ import { environmentThreadDetails } from "../state/threads";
 
 import type { Thread, ThreadShell, TurnDiffSummary } from "../types";
 import { deriveProviderInstanceEntries, NO_PROVIDER_MODEL_SELECTION } from "../providerInstances";
-import type { CodexArtifactTemplate } from "@t3tools/client-runtime/codex-artifact-templates";
+
 import { scopeThreadRef } from "@t3tools/client-runtime/environment";
 import {
   type RightPanelSurface,
@@ -45,7 +44,6 @@ import {
   deriveLockedProvider,
   dismissBranchMismatchForSession,
   ENVIRONMENT_RECONNECT_WARNING_GRACE_MS,
-  getAntigravitySendBlockReason,
   getStartedThreadModelChangeBlockReason,
   hasEnvironmentReconnectWarningGraceElapsed,
   hasServerAcknowledgedLocalDispatch,
@@ -78,7 +76,6 @@ import {
   timelineHasEphemeralPreviewUrls,
   scheduleEnvironmentReconnectWarning,
   startNewThreadForProject,
-  codexArtifactTemplatePromptToAppend,
   shouldDockDraftHeroForSubmission,
   shouldReleaseTimelineAnchorForToolActivity,
   shouldOpenProactivePullRequest,
@@ -580,21 +577,6 @@ const environmentId = EnvironmentId.make("environment-local");
 const projectId = ProjectId.make("project-1");
 const threadId = ThreadId.make("thread-1");
 const now = "2026-03-29T00:00:00.000Z";
-const helloWorldTemplate: CodexArtifactTemplate = {
-  artifactKind: "document",
-  displayName: "Hello World",
-  skillDirectory: "/Users/test/.codex/skills/artifact-template-hello-world",
-  skillName: "artifact-template-hello-world",
-};
-
-describe("artifact template composer insertion", () => {
-  it("does not insert an already-present prompt", () => {
-    const prompt = "Create a document using this $artifact-template-hello-world about…";
-
-    expect(codexArtifactTemplatePromptToAppend(prompt, helloWorldTemplate)).toBeNull();
-  });
-});
-
 describe("draft hero submission transition", () => {
   it("does not dock the composer before a background submission", () => {
     expect(
@@ -977,7 +959,7 @@ function makeThread(overrides: Partial<Thread> = {}): Thread {
     projectId,
     title: "Thread",
     modelSelection: {
-      instanceId: ProviderInstanceId.make("codex"),
+      instanceId: ProviderInstanceId.make("testDriver"),
       model: "gpt-5.4",
     },
     runtimeMode: "full-access",
@@ -1013,8 +995,8 @@ const completedTurn = {
 const readySession = {
   threadId,
   status: "ready" as const,
-  providerName: "codex",
-  providerInstanceId: ProviderInstanceId.make("codex"),
+  providerName: "testDriver",
+  providerInstanceId: ProviderInstanceId.make("testDriver"),
   runtimeMode: "full-access" as const,
   activeTurnId: null,
   lastError: null,
@@ -1104,7 +1086,7 @@ describe("buildLoadingThreadFromShell", () => {
       projectId,
       title: "Loading thread",
       modelSelection: {
-        instanceId: ProviderInstanceId.make("codex"),
+        instanceId: ProviderInstanceId.make("testDriver"),
         model: "gpt-5.4",
       },
       runtimeMode: "full-access",
@@ -1144,7 +1126,7 @@ describe("buildLoadingThreadFromShell", () => {
 
 describe("resolveThreadMetadataUpdateForNextTurn", () => {
   const modelSelection = {
-    instanceId: ProviderInstanceId.make("codex"),
+    instanceId: ProviderInstanceId.make("testDriver"),
     model: "gpt-5.4",
   };
 
@@ -1400,84 +1382,6 @@ describe("resolveComposerProviderSelection", () => {
     });
 
     expect(selection.selectedProviderEntry?.instanceId).toBe(signedOutEntry.instanceId);
-    expect(
-      getAntigravitySendBlockReason(selection.selectedProviderEntry?.snapshot, "gemini-pro"),
-    ).toBe("Sign in to Antigravity in provider settings before sending.");
-  });
-
-  it("blocks sends until the selected Antigravity profile is installed", () => {
-    const provider = entry("antigravity", "google_work", {
-      installed: false,
-      models: catalogModels,
-    }).snapshot;
-
-    expect(getAntigravitySendBlockReason(provider, "gemini-pro")).toBe(
-      "Install Antigravity in provider settings before sending.",
-    );
-  });
-
-  it("lets Antigravity check saved credentials when resuming after a restart", () => {
-    const provider = entry("antigravity", "google_work", {
-      status: "warning",
-      auth: { status: "unknown" },
-      models: [],
-    }).snapshot;
-
-    expect(getAntigravitySendBlockReason(provider, "gemini-pro")).toBeNull();
-    expect(getAntigravitySendBlockReason(provider, ANTIGRAVITY_DEFAULT_MODEL)).toBeNull();
-    expect(
-      getAntigravitySendBlockReason({ ...provider, models: catalogModels }, "gemini-pro"),
-    ).toBeNull();
-    expect(getAntigravitySendBlockReason(provider, "")).toBe(
-      "Choose an Antigravity model before sending.",
-    );
-  });
-
-  it("blocks saved model sends until Antigravity loads its account catalog", () => {
-    expect(getAntigravitySendBlockReason(entry("antigravity").snapshot, "gemini-pro")).toBe(
-      "Refresh Antigravity models in provider settings before sending.",
-    );
-  });
-
-  it("blocks an empty Antigravity selection after the catalog has loaded", () => {
-    const provider = entry("antigravity", "google_work", { models: catalogModels }).snapshot;
-
-    expect(getAntigravitySendBlockReason(provider, "")).toBe(
-      "Choose an Antigravity model before sending.",
-    );
-  });
-
-  it("blocks a saved model that a ready catalog no longer lists", () => {
-    const provider = entry("antigravity", "google_work", {
-      status: "ready",
-      models: catalogModels,
-    }).snapshot;
-
-    expect(getAntigravitySendBlockReason(provider, "saved-model-not-in-current-catalog")).toBe(
-      "That Antigravity model is no longer available. Choose another model.",
-    );
-    expect(getAntigravitySendBlockReason(provider, "gemini-pro")).toBeNull();
-  });
-
-  it("allows a saved native model to retry after a provider error without changing it", () => {
-    const provider = entry("antigravity", "google_work", {
-      status: "error",
-      models: catalogModels,
-    }).snapshot;
-
-    expect(
-      getAntigravitySendBlockReason(provider, "saved-model-not-in-current-catalog"),
-    ).toBeNull();
-  });
-
-  it("keeps existing send behavior for other providers", () => {
-    const provider = entry("codex", "codex", {
-      installed: false,
-      auth: { status: "unknown" },
-      models: [],
-    }).snapshot;
-
-    expect(getAntigravitySendBlockReason(provider, "gpt-model")).toBeNull();
   });
 
   it("does not continue an existing Antigravity thread in another profile after deletion", () => {
@@ -1485,7 +1389,7 @@ describe("resolveComposerProviderSelection", () => {
     const selection = resolveComposerProviderSelection({
       entries: [entry("antigravity")],
       candidateInstanceIds: [missingInstanceId],
-      lockedProvider: ProviderDriverKind.make("antigravity"),
+      lockedProvider: ProviderDriverKind.make("sixthDriver"),
       lockedInstanceId: missingInstanceId,
     });
 
@@ -1516,7 +1420,7 @@ describe("resolveComposerProviderSelection", () => {
     const selection = resolveComposerProviderSelection({
       entries: [sessionEntry, anotherEntry],
       candidateInstanceIds: [anotherEntry.instanceId, sessionEntry.instanceId],
-      lockedProvider: ProviderDriverKind.make("antigravity"),
+      lockedProvider: ProviderDriverKind.make("sixthDriver"),
       lockedInstanceId: sessionEntry.instanceId,
     });
 
@@ -1690,7 +1594,7 @@ describe("buildExpiredTerminalContextToastCopy", () => {
 describe("getStartedThreadModelChangeBlockReason", () => {
   const providers = [
     {
-      instanceId: ProviderInstanceId.make("codex"),
+      instanceId: ProviderInstanceId.make("testDriver"),
     },
     {
       instanceId: ProviderInstanceId.make("grok"),
@@ -1738,7 +1642,7 @@ describe("getStartedThreadModelChangeBlockReason", () => {
         providers,
         hasStartedSession: true,
         currentModelSelection: {
-          instanceId: ProviderInstanceId.make("codex"),
+          instanceId: ProviderInstanceId.make("testDriver"),
           model: "gpt-5.4",
         },
         nextModelSelection: {
@@ -2285,7 +2189,7 @@ describe("threadShellHasStarted", () => {
         session: {
           threadId,
           status: "starting",
-          providerName: "codex",
+          providerName: "testDriver",
           runtimeMode: "full-access",
           activeTurnId: null,
           lastError: null,

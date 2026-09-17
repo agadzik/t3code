@@ -133,7 +133,7 @@ Provider CLIs must be on the `PATH` of a non-interactive login shell there;
 check with:
 
 ```bash
-ssh user@example.com 'sh -lc "command -v claude codex"'
+ssh user@example.com 'sh -lc "command -v node"'
 ```
 
 If SSH reconnecting fails after an app update, retry the launch once. Removing

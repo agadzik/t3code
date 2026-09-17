@@ -7,8 +7,8 @@ import {
   sortProviderModelItems,
 } from "./modelOrdering";
 
-const CODEX_WORK_ID = ProviderInstanceId.make("codex_work");
-const CLAUDE_ID = ProviderInstanceId.make("claudeAgent");
+const CODEX_WORK_ID = ProviderInstanceId.make("testDriver_work");
+const CLAUDE_ID = ProviderInstanceId.make("otherDriver");
 
 describe("model ordering", () => {
   it("groups favorites first while preserving provider model order inside each group", () => {

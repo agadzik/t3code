@@ -74,15 +74,10 @@ import {
 } from "./thread-settings-sheet-state";
 
 /**
- * Everyday harnesses start expanded; every other provider (OpenRouter catalogs
- * and friends) starts folded so a 300-model catalog cannot bury the list. All
- * provider headers remain user-collapsible.
+ * The applied model's group starts expanded. Other groups start folded so a
+ * large catalog cannot bury the list. All provider headers remain user-collapsible.
  */
-const PRIMARY_PROVIDER_DRIVERS: ReadonlySet<string> = new Set([
-  "claudeAgent",
-  "codex",
-  "antigravity",
-]);
+const PRIMARY_PROVIDER_DRIVERS: ReadonlySet<string> = new Set();
 /**
  * Keep measured row changes stable, but let catalog mutations use the list's
  * native bounds so a filtered catalog that underflows returns to the top.

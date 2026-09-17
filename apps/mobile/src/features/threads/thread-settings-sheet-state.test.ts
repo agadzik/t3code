@@ -17,14 +17,14 @@ function modelOption(
     key: `codex:${model}`,
     label: model,
     subtitle: "",
-    providerKey: "codex",
+    providerKey: "testDriver",
     providerLabel: "Codex",
-    providerDriver: "codex",
+    providerDriver: "testDriver",
     isDefault: false,
     isLegacy: false,
     capabilities: null,
     selection: {
-      instanceId: ProviderInstanceId.make("codex"),
+      instanceId: ProviderInstanceId.make("testDriver"),
       model,
       options,
     },
@@ -103,7 +103,7 @@ describe("thread settings sheet state", () => {
 
   it("cannot save a staged model after sign-out removes it from the catalog", () => {
     const pending = modelOption("gemini-native");
-    const group = { providerKey: "codex", providerLabel: "Codex", models: [pending] };
+    const group = { providerKey: "testDriver", providerLabel: "Codex", models: [pending] };
 
     expect(canCommitPendingModel(pending, [group])).toBe(true);
     expect(canCommitPendingModel(pending, [])).toBe(false);

@@ -11,8 +11,8 @@ import {
 
 function warningProvider(): ServerProvider {
   return {
-    instanceId: ProviderInstanceId.make("codex"),
-    driver: ProviderDriverKind.make("codex"),
+    instanceId: ProviderInstanceId.make("testDriver"),
+    driver: ProviderDriverKind.make("testDriver"),
     displayName: "Codex",
     enabled: true,
     installed: true,
@@ -32,7 +32,7 @@ describe("ProviderStatusBanner", () => {
     const status: ServerProvider = {
       ...warningProvider(),
       instanceId: ProviderInstanceId.make("google_work"),
-      driver: ProviderDriverKind.make("antigravity"),
+      driver: ProviderDriverKind.make("sixthDriver"),
       auth: { status: "unknown" },
       message: "Antigravity is installed. Google account access is not checked yet.",
     };
@@ -53,14 +53,17 @@ describe("ProviderStatusBanner", () => {
   it("shows Antigravity installation and startup failures before auth is checked", () => {
     const status: ServerProvider = {
       ...warningProvider(),
-      driver: ProviderDriverKind.make("antigravity"),
+      driver: ProviderDriverKind.make("sixthDriver"),
       auth: { status: "unknown" },
     };
 
     expect(shouldShowProviderStatusBanner({ ...status, installed: false }, null)).toBe(true);
     expect(shouldShowProviderStatusBanner({ ...status, status: "error" }, null)).toBe(true);
     expect(
-      shouldShowProviderStatusBanner({ ...status, driver: ProviderDriverKind.make("codex") }, null),
+      shouldShowProviderStatusBanner(
+        { ...status, driver: ProviderDriverKind.make("testDriver") },
+        null,
+      ),
     ).toBe(true);
   });
 
@@ -98,7 +101,7 @@ describe("getProviderStatusMessage", () => {
     expect(
       getProviderStatusMessage({
         ...warningProvider(),
-        driver: ProviderDriverKind.make("antigravity"),
+        driver: ProviderDriverKind.make("sixthDriver"),
         status: "error",
         auth: { status: "unauthenticated" },
         message,
@@ -110,7 +113,7 @@ describe("getProviderStatusMessage", () => {
     expect(
       getProviderStatusMessage({
         ...warningProvider(),
-        driver: ProviderDriverKind.make("antigravity"),
+        driver: ProviderDriverKind.make("sixthDriver"),
         status: "error",
         auth: { status: "unauthenticated" },
         message: "",
@@ -122,7 +125,7 @@ describe("getProviderStatusMessage", () => {
     expect(
       getProviderStatusMessage({
         ...warningProvider(),
-        driver: ProviderDriverKind.make("antigravity"),
+        driver: ProviderDriverKind.make("sixthDriver"),
         displayName: "Google work account",
         installed: false,
         status: "error",

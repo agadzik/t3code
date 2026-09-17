@@ -17,9 +17,6 @@ import * as NodeOS from "node:os";
 
 import {
   AgentSessionScanError,
-  ClaudeSettings,
-  CodexSettings,
-  ProviderDriverKind,
   ProviderInstanceId,
   resolveProviderInstanceEnabled,
   type AgentSessionImportSource,
@@ -49,7 +46,6 @@ import { normalizeProjectPathForComparison } from "@t3tools/shared/path";
 
 import * as ServerConfig from "../config.ts";
 import * as ProjectionSnapshotQuery from "../orchestration/Services/ProjectionSnapshotQuery.ts";
-import { resolveCodexHomeLayout } from "../provider/Drivers/CodexHomeLayout.ts";
 import { expandHomePath } from "../pathExpansion.ts";
 import * as ServerSettings from "../serverSettings.ts";
 import {
@@ -135,8 +131,14 @@ const TranscriptRecord = Schema.Struct({
   ),
 });
 
-const decodeClaudeSettings = Schema.decodeUnknownOption(ClaudeSettings);
-const decodeCodexSettings = Schema.decodeUnknownOption(CodexSettings);
+function readConfigHomePath(config: unknown): string | undefined {
+  if (config === null || typeof config !== "object" || Array.isArray(config)) {
+    return undefined;
+  }
+  const homePath = (config as { readonly homePath?: unknown }).homePath;
+  return typeof homePath === "string" && homePath.trim().length > 0 ? homePath.trim() : undefined;
+}
+
 const decodeTranscriptRecord = Schema.decodeUnknownOption(Schema.fromJsonString(TranscriptRecord));
 const decodeTranscriptValue = Schema.decodeUnknownOption(TranscriptRecord);
 const selectTranscriptPath = createTranscriptJsonSelector(TranscriptRecord);
@@ -1102,19 +1104,6 @@ export const make = Effect.gen(function* () {
           instanceId: ProviderInstanceId.make(instanceId),
           config,
         }));
-      if (!Object.hasOwn(settings.providerInstances, source)) {
-        const legacyInstance = {
-          instanceId: ProviderInstanceId.make(source),
-          config: {
-            driver: ProviderDriverKind.make(source),
-            config: settings.providers[source],
-          },
-        };
-        if (resolveProviderInstanceEnabled(legacyInstance.config)) {
-          instances.push(legacyInstance);
-        }
-      }
-
       // A shared home contains one copy of each session. Prefer the built-in
       // instance as its owner, then keep configured order for custom accounts.
       instances.sort((left, right) => {
@@ -1130,24 +1119,14 @@ export const make = Effect.gen(function* () {
           instance.environment?.findLast((variable) => variable.name === homeVariable)?.value ??
           hostEnvironment[homeVariable];
 
+        const configuredHome = readConfigHomePath(instance.config);
         let homePath: string;
         if (source === "claudeAgent") {
-          const config = decodeClaudeSettings(instance.config ?? {});
-          if (Option.isNone(config)) continue;
-          homePath = resolveClaudeConfigDir(config.value.homePath, environmentHome);
+          homePath = resolveClaudeConfigDir(configuredHome ?? "", environmentHome);
         } else {
-          const config = decodeCodexSettings(instance.config ?? {});
-          if (Option.isNone(config)) continue;
-          const codexSettings =
-            config.value.homePath.trim().length === 0 &&
-            config.value.shadowHomePath.trim().length === 0 &&
-            environmentHome?.trim()
-              ? { ...config.value, homePath: environmentHome }
-              : config.value;
-          const layout = yield* resolveCodexHomeLayout(codexSettings).pipe(
-            Effect.provideService(Path.Path, path),
-          );
-          homePath = layout.sharedHomePath;
+          homePath = configuredHome
+            ? expandHomePath(configuredHome)
+            : environmentHome?.trim() || path.join(NodeOS.homedir(), ".codex");
         }
 
         const homeKey = `${source}\0${yield* directoryIdentity(homePath)}`;

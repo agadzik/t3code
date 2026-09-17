@@ -5,7 +5,6 @@ import {
   sortPinnedThreadsByOrderKey,
   sortThreads,
 } from "@t3tools/client-runtime/state/thread-sort";
-import { formatHourShort, formatRelativeHourShort } from "@t3tools/shared/usageFormat";
 import { bench, describe } from "vite-plus/test";
 
 import { deriveActivePlanState } from "./session-logic";
@@ -35,11 +34,6 @@ const activities: OrchestrationThreadActivity[] = Array.from({ length: 500 }, (_
   tone: "info",
   payload: index % 100 === 0 ? { plan: [{ step: "Run checks", status: "inProgress" }] } : {},
 }));
-const hours = Array.from({ length: 24 }, (_, index) =>
-  new Date(start + index * 3_600_000).toISOString(),
-);
-const referenceTime = "2026-08-12T00:00:00.000Z";
-
 describe("client performance", () => {
   bench("sort 1000 threads by recent activity", () => {
     sortThreads(threads, "updated_at");
@@ -55,11 +49,5 @@ describe("client performance", () => {
   });
   bench("derive plan from 500 activities with 5 plan updates", () => {
     deriveActivePlanState(activities, turnId);
-  });
-  bench("format 24 hourly usage labels and tooltips", () => {
-    hours.map((hour) => [
-      formatHourShort(hour, "America/New_York"),
-      formatRelativeHourShort(hour, referenceTime, "America/New_York"),
-    ]);
   });
 });

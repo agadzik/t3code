@@ -18,13 +18,7 @@
     },
     "apps/server": {
       // Vite+ pack entries and the launcher used by installed background services.
-      "entry": [
-        "src/bin.ts!",
-        "src/claude-history-worker.ts!",
-        "scripts/cli.ts",
-        "scripts/evaluate-thread-titles.ts",
-        "src/provider/testFixtures/*.mjs",
-      ],
+      "entry": ["src/bin.ts!", "scripts/cli.ts"],
       // Keep the transitive Effect runtime pinned for standalone npm installs.
       // Native msgpack acceleration and the Vite+ web build prerequisite.
       "ignoreDependencies": ["@effect/platform-node-shared", "msgpackr-extract", "@t3tools/web"],
@@ -76,17 +70,6 @@
     "packages/*": {
       // These workspace packages are private to this monorepo.
       "includeEntryExports": true,
-    },
-    "packages/effect-acp": {
-      "includeEntryExports": true,
-      "entry": ["test/fixtures/*.ts"],
-      // Generated upstream protocol definitions are retained as a complete set.
-      "ignoreIssues": { "src/_generated/**": ["exports", "types"] },
-    },
-    "packages/effect-codex-app-server": {
-      "includeEntryExports": true,
-      "entry": ["test/fixtures/*.ts"],
-      "ignoreIssues": { "src/_generated/**": ["exports", "types"] },
     },
   },
 }

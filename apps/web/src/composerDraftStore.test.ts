@@ -27,12 +27,12 @@ import {
 // The composer draft's `modelSelectionByProvider` and
 // `stickyModelSelectionByProvider` maps are keyed by `ProviderInstanceId`
 // in production; these aliases keep the legacy-key migration tests concise.
-const CODEX_INSTANCE = ProviderInstanceId.make("codex");
+const CODEX_INSTANCE = ProviderInstanceId.make("testDriver");
 const CODEX_SECONDARY_INSTANCE = ProviderInstanceId.make("codex_secondary");
-const CLAUDE_AGENT_INSTANCE = ProviderInstanceId.make("claudeAgent");
+const CLAUDE_AGENT_INSTANCE = ProviderInstanceId.make("otherDriver");
 const CURSOR_INSTANCE = ProviderInstanceId.make("cursor");
-const CODEX_DRIVER = ProviderDriverKind.make("codex");
-const CLAUDE_AGENT_DRIVER = ProviderDriverKind.make("claudeAgent");
+const CODEX_DRIVER = ProviderDriverKind.make("testDriver");
+const CLAUDE_AGENT_DRIVER = ProviderDriverKind.make("otherDriver");
 const CURSOR_DRIVER = ProviderDriverKind.make("cursor");
 
 type ProviderOptionSelectionBag = ReadonlyArray<ProviderOptionSelection>;

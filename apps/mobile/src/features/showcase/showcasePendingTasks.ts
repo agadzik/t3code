@@ -28,7 +28,7 @@ export const SHOWCASE_PENDING_TASK_DEFINITIONS = [
 ] as const;
 
 const FALLBACK_MODEL_SELECTION = {
-  instanceId: ProviderInstanceId.make("codex"),
+  instanceId: ProviderInstanceId.make("testDriver"),
   model: "gpt-5.4",
 } as const;
 

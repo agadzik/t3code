@@ -25,7 +25,7 @@ import {
 
 describe("mobile slash commands", () => {
   const antigravity = {
-    driver: ProviderDriverKind.make("antigravity"),
+    driver: ProviderDriverKind.make("sixthDriver"),
     showInteractionModeToggle: false,
     slashCommands: [{ name: "plan", description: "Plan with Antigravity" }],
   };
@@ -75,7 +75,7 @@ describe("mobile slash commands", () => {
       hasThread: true,
       allowInteractionMode: true,
       selectedProviderStatus: {
-        driver: ProviderDriverKind.make("codex"),
+        driver: ProviderDriverKind.make("testDriver"),
         slashCommands: [],
       },
     });

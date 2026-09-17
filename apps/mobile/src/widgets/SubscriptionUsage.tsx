@@ -17,8 +17,7 @@ import { createWidget, type WidgetEnvironment } from "expo-widgets";
 import type { SubscriptionUsageSnapshot as SubscriptionUsageProps } from "./subscriptionUsageSnapshot";
 
 type UsageConfiguration = {
-  codexPeriod?: "auto" | "session" | "weekly";
-  claudePeriod?: "auto" | "session" | "weekly";
+  period?: "auto" | "session" | "weekly";
 };
 
 function SubscriptionUsage(
@@ -38,15 +37,21 @@ function SubscriptionUsage(
   const limit = family === "systemExtraLarge" ? 6 : family === "systemLarge" ? 4 : 2;
   const monochrome =
     environment.widgetRenderingMode !== "fullColor" || environment.isLuminanceReduced;
-  const providers = props.providers ?? [
-    { name: "Codex", detail: "Open T3 to connect", windows: [], expiresAt: 0 },
-    { name: "Claude", detail: "Open T3 to connect", windows: [], expiresAt: 0 },
-  ];
+  const providers =
+    props.providers.length > 0
+      ? props.providers
+      : [
+          {
+            name: "Limits",
+            detail: "Open T3 to connect",
+            windows: [],
+            expiresAt: 0,
+            totalWindows: 0,
+          },
+        ];
   const columns = providers.map((provider) => {
     const stale = provider.windows.length > 0 && now >= provider.expiresAt;
-    const period =
-      environment.configuration?.[provider.name === "Claude" ? "claudePeriod" : "codexPeriod"] ??
-      "auto";
+    const period = environment.configuration?.period ?? "auto";
     const windows = stale
       ? []
       : provider.windows.filter((window) => period === "auto" || window.kind === period);
@@ -80,7 +85,7 @@ function SubscriptionUsage(
     const barModifiers = [
       progressViewStyle("linear"),
       frame({ height: 4 }),
-      ...(monochrome ? [] : [tint(provider.name === "Claude" ? "#d97757" : "#8e8e93")]),
+      ...(monochrome ? [] : [tint("#8e8e93")]),
     ];
     if (accessory) {
       return (

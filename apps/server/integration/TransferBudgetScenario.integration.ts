@@ -2,7 +2,6 @@ import {
   CommandId,
   defaultInstanceIdForDriver,
   DEFAULT_MODEL,
-  DEFAULT_MODEL_BY_PROVIDER,
   DEFAULT_PROVIDER_INTERACTION_MODE,
   MessageId,
   ORCHESTRATION_WS_METHODS,
@@ -33,7 +32,7 @@ export const TRANSFER_MEASURED_TURN_INDEX = TRANSFER_HISTORY_TURN_COUNT;
 export function transferModelSelection(provider: ProviderDriverKind) {
   return {
     instanceId: defaultInstanceIdForDriver(provider),
-    model: DEFAULT_MODEL_BY_PROVIDER[provider] ?? DEFAULT_MODEL,
+    model: DEFAULT_MODEL,
   };
 }
 

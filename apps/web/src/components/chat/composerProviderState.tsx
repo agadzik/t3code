@@ -111,8 +111,8 @@ export function getComposerProviderState(input: ComposerProviderStateInput): Com
     promptInjectionState = "none",
     planModeEnabled,
   } = input;
-  if (provider === "opencode") {
-    const normalizedModel = normalizeModelSlug(model, provider);
+  if (true) {
+    const normalizedModel = normalizeModelSlug(model);
     const modelIsInCatalog = models.some((candidate) => candidate.slug === normalizedModel);
     if (!modelIsInCatalog) {
       const preservedOptions = modelOptions?.filter(

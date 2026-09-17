@@ -177,13 +177,7 @@ const THEME_SERVER_CONFIG: ServerConfigType = {
   },
 };
 const ENCODED_THEME_SERVER_CONFIG = encodeServerConfig(THEME_SERVER_CONFIG);
-const SOURCE_SERVER_CONFIG: ServerConfigType = {
-  ...THEME_SERVER_CONFIG,
-  environment: {
-    ...THEME_SERVER_CONFIG.environment,
-    capabilities: { ...THEME_SERVER_CONFIG.environment.capabilities, usageLimitSources: true },
-  },
-};
+const SOURCE_SERVER_CONFIG: ServerConfigType = THEME_SERVER_CONFIG;
 const SOURCE_EVENT: ServerConfigStreamEventType = {
   version: 1,
   type: "usageLimitSourcesUpdated",
@@ -485,7 +479,7 @@ describe("RpcSessionFactory", () => {
   it.effect.each([
     { usageLimitSources: true },
     { environmentThemes: true, usageLimitSources: true },
-  ])("replays usage sources, removal, and capability downgrade with %j", (options) =>
+  ])("replays usage sources, removal, and snapshot carry with %j", (options) =>
     Effect.scoped(
       Effect.gen(function* () {
         const { factory, sockets } = yield* makeFactory(options);
@@ -536,7 +530,7 @@ describe("RpcSessionFactory", () => {
           const replayed = Array.from(yield* Fiber.join(replay));
           expect(replayed.slice(1)).toEqual([
             ...themes,
-            ...(event.type === "snapshot" ? [] : [event]),
+            event.type === "snapshot" ? SOURCE_EVENT : event,
             marker,
           ]);
           let projection = applyServerConfigProjection(Option.none(), {
@@ -547,9 +541,11 @@ describe("RpcSessionFactory", () => {
           projection = applyServerConfigProjection(projection, SOURCE_EVENT);
           for (const item of replayed) projection = applyServerConfigProjection(projection, item);
           expect(Option.getOrThrow(projection).config.usageLimitSources).toEqual(
-            event.type === "usageLimitSourcesUpdated" && event.payload.sources.length > 0
-              ? event.payload.sources
-              : undefined,
+            event.type === "usageLimitSourcesUpdated"
+              ? event.payload.sources.length > 0
+                ? event.payload.sources
+                : undefined
+              : SOURCE_EVENT.payload.sources,
           );
         }
         expect(socket.sent.map((message) => decodeJson(message)).filter(isRpcRequest)).toHaveLength(
@@ -964,8 +960,8 @@ describe("RpcSessionFactory", () => {
         payload: {
           providers: [
             {
-              instanceId: ProviderInstanceId.make("codex"),
-              driver: ProviderDriverKind.make("codex"),
+              instanceId: ProviderInstanceId.make("testDriver"),
+              driver: ProviderDriverKind.make("testDriver"),
               enabled: true,
               installed: true,
               version: "1.0.0",
@@ -982,8 +978,8 @@ describe("RpcSessionFactory", () => {
       expectedConfig: {
         providers: [
           {
-            instanceId: ProviderInstanceId.make("codex"),
-            driver: ProviderDriverKind.make("codex"),
+            instanceId: ProviderInstanceId.make("testDriver"),
+            driver: ProviderDriverKind.make("testDriver"),
             enabled: true,
             installed: true,
             version: "1.0.0",

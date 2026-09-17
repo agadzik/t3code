@@ -14,7 +14,7 @@ import {
   readComposerDraftSelection,
   setComposerDraftContext,
 } from "../../state/use-composer-drafts";
-import { USAGE_LIMITS_COMMAND } from "@t3tools/shared/usageLimits";
+import { USAGE_LIMITS_COMMAND } from "@t3tools/client-runtime/usageLimits";
 import {
   detectComposerTrigger,
   replaceTextRange,
@@ -103,11 +103,7 @@ export function buildComposerSlashCommandItems(input: {
     if (command.name === USAGE_LIMITS_COMMAND.name && input.offersUsageLimits && !input.hasThread) {
       continue;
     }
-    if (
-      !input.hasThread &&
-      input.selectedProviderStatus?.driver === "codex" &&
-      command.name === "feedback"
-    ) {
+    if (!input.hasThread && command.name === "feedback") {
       continue;
     }
     items.push({

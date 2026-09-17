@@ -1,5 +1,4 @@
-import { EnvironmentId, ProviderInstanceId, USAGE_CONTRACT_VERSION } from "@t3tools/contracts";
-import { mergeUsage } from "@t3tools/shared/usageMerge";
+import { EnvironmentId, ProviderInstanceId } from "@t3tools/contracts";
 import { StrictMode, act } from "react";
 import { create, type ReactTestRenderer } from "react-test-renderer";
 import { afterEach, beforeEach, expect, it, vi } from "vite-plus/test";
@@ -7,7 +6,6 @@ import { afterEach, beforeEach, expect, it, vi } from "vite-plus/test";
 const state = vi.hoisted(() => ({
   presentations: new Map(),
   refreshProviders: vi.fn(async () => undefined),
-  metric: "limits",
 }));
 vi.mock("@effect/atom-react", () => ({ useAtomValue: () => state.presentations }));
 vi.mock("../../state/presentation", () => ({
@@ -17,47 +15,9 @@ vi.mock("../../state/server", () => ({ serverEnvironment: { refreshProviders: nu
 vi.mock("../../state/use-atom-command", () => ({ useAtomCommand: () => state.refreshProviders }));
 vi.mock("../../env", () => ({ isElectron: false }));
 vi.mock("../../hooks/useSettings", () => ({ usePrimarySettings: () => "24h" }));
-vi.mock("../../state/usage", () => ({
-  useUsage: () => ({
-    merged: mergeUsage([], USAGE_CONTRACT_VERSION),
-    environments: [
-      {
-        environmentId: EnvironmentId.make("test"),
-        label: "Test",
-        isPending: false,
-        error: null,
-        summary: null,
-      },
-    ],
-    selectedEnvironments: [
-      {
-        environmentId: EnvironmentId.make("test"),
-        label: "Test",
-        isPending: false,
-        error: null,
-        summary: null,
-      },
-    ],
-    isPending: false,
-    isPartial: false,
-    refresh: async () => undefined,
-  }),
-}));
-vi.mock("./usagePagePreferences", () => ({
-  readUsagePagePreferences: () => ({ metric: state.metric, windowDays: 30 }),
-  saveUsagePagePreferences: vi.fn(),
-}));
 vi.mock("../ui/button", () => ({ Button: "button" }));
 vi.mock("../ui/scroll-area", () => ({ ScrollArea: "div" }));
-vi.mock("../ui/select", () => ({
-  Select: "select",
-  SelectItem: "option",
-  SelectPopup: "div",
-  SelectTrigger: "div",
-  SelectValue: "span",
-}));
 vi.mock("../ui/sidebar", () => ({ SidebarInset: "div" }));
-vi.mock("../ui/toggle-group", () => ({ Toggle: "button", ToggleGroup: "div" }));
 vi.mock("../ui/tooltip", () => ({ Tooltip: "div", TooltipPopup: "div", TooltipTrigger: "div" }));
 vi.mock("../ui/popover", () => ({ Popover: "div", PopoverPopup: "div", PopoverTrigger: "div" }));
 vi.mock("../ui/menu", () => ({
@@ -75,11 +35,11 @@ vi.mock("../WorkspaceBreadcrumb", () => ({
 }));
 vi.mock("../WorkspacePageContainer", () => ({ WorkspacePageContainer: "main" }));
 vi.mock("../WorkspacePageHeader", () => ({ WorkspacePageHeader: "header" }));
-vi.mock("./UsageProviderChart", () => ({ UsageProviderChart: "div" }));
-vi.mock("./UsagePriceOverrides", () => ({ UsagePriceOverrides: () => null }));
 vi.mock("../chat/ProviderInstanceIcon", () => ({ ProviderInstanceIcon: () => null }));
 vi.mock("../settings/RedactedSensitiveText", () => ({ RedactedSensitiveText: "span" }));
-vi.mock("../settings/providerDriverMeta", () => ({ getDriverOption: () => ({ label: "Codex" }) }));
+vi.mock("../settings/providerDriverMeta", () => ({
+  getDriverOption: () => ({ label: "Test Driver" }),
+}));
 
 import { UsagePage } from "./UsagePage";
 
@@ -89,7 +49,6 @@ beforeEach(() => {
   vi.stubGlobal("IS_REACT_ACT_ENVIRONMENT", true);
   vi.spyOn(Date, "now").mockReturnValue(Date.parse("2026-09-11T12:00:00Z"));
   environmentNumber += 1;
-  state.metric = "limits";
   state.refreshProviders.mockClear();
   state.presentations = new Map([
     [
@@ -100,8 +59,8 @@ beforeEach(() => {
         serverConfig: {
           providers: [
             {
-              instanceId: ProviderInstanceId.make("codex"),
-              driver: "codex",
+              instanceId: ProviderInstanceId.make("testDriver"),
+              driver: "testDriver",
               enabled: true,
               installed: true,
               version: null,
@@ -138,7 +97,7 @@ afterEach(async () => {
 });
 
 it.each([0, 1])(
-  "refreshes the visible limits countdown with refresh button %i without switching tabs, even when quota is unchanged",
+  "refreshes the visible limits countdown with refresh button %i even when quota is unchanged",
   async (buttonIndex) => {
     await act(() => {
       renderer = create(<UsagePage />);
@@ -167,26 +126,7 @@ it.each([0, 1])(
   },
 );
 
-it("uses the current time when returning to limits from tokens", async () => {
-  await act(() => {
-    renderer = create(<UsagePage />);
-  });
-  const selectMetric = (metric: string) => {
-    renderer.root
-      .findAll((node) => node.type === "div" && node.props["aria-label"] === "Usage metric")[0]!
-      .props.onValueChange([metric]);
-  };
-  await act(() => selectMetric("tokens"));
-  vi.mocked(Date.now).mockReturnValue(Date.parse("2026-09-11T13:00:00Z"));
-  await act(() => selectMetric("limits"));
-  expect(
-    JSON.stringify(renderer.toJSON(), (key, value) => (key === "props" ? undefined : value)),
-  ).toContain("in 1h 0m");
-  expect(state.refreshProviders).toHaveBeenCalledTimes(2);
-});
-
-it("refreshes once on opening Limits and suppresses rapid returns and remounts", async () => {
-  state.metric = "tokens";
+it("refreshes once on mount and suppresses remounts within the cooldown", async () => {
   await act(() => {
     renderer = create(
       <StrictMode>
@@ -194,17 +134,8 @@ it("refreshes once on opening Limits and suppresses rapid returns and remounts",
       </StrictMode>,
     );
   });
-  expect(state.refreshProviders).not.toHaveBeenCalled();
-  const selectMetric = (metric: string) =>
-    renderer.root
-      .findAll((node) => node.type === "div" && node.props["aria-label"] === "Usage metric")[0]!
-      .props.onValueChange([metric]);
-  await act(() => selectMetric("limits"));
   expect(state.refreshProviders).toHaveBeenCalledTimes(1);
-  await act(() => selectMetric("tokens"));
-  await act(() => selectMetric("limits"));
   await act(() => renderer.unmount());
-  state.metric = "limits";
   await act(() => {
     renderer = create(
       <StrictMode>
@@ -213,10 +144,6 @@ it("refreshes once on opening Limits and suppresses rapid returns and remounts",
     );
   });
   expect(state.refreshProviders).toHaveBeenCalledTimes(1);
-  await act(() => selectMetric("tokens"));
-  vi.mocked(Date.now).mockReturnValue(Date.parse("2026-09-11T12:05:00Z"));
-  await act(() => selectMetric("limits"));
-  expect(state.refreshProviders).toHaveBeenCalledTimes(2);
 });
 
 it("waits for connection and refreshes new environments during a slow refresh", async () => {
