@@ -625,6 +625,15 @@
         "licenseId": "MIT",
         "copyrights": ["Copyright (c) 2015 Linus Unnebäck"]
       }
+    },
+    {
+      "license": "MIT",
+      "name": "jsonlines",
+      "sourceUrl": "https://github.com/LinusU/node-jsonlines",
+      "generatedNotice": {
+        "licenseId": "MIT",
+        "copyrights": ["Copyright (c) 2015 Linus Unnebäck"]
+      }
     }
   ]
 }
