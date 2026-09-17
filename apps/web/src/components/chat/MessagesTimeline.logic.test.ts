@@ -389,7 +389,7 @@ describe("streaming row projection", () => {
       id: ThreadId.make("streaming-thread"),
       projectId: ProjectId.make("project"),
       title: "Long thread",
-      modelSelection: { instanceId: ProviderInstanceId.make("codex"), model: "gpt-5.4" },
+      modelSelection: { instanceId: ProviderInstanceId.make("testDriver"), model: "gpt-5.4" },
       runtimeMode: "full-access",
       interactionMode: "default",
       branch: null,

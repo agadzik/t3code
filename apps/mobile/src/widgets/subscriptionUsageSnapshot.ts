@@ -3,7 +3,7 @@ import {
   collectLimitPools,
   type LimitAccount,
   type LimitPresentations,
-} from "@t3tools/shared/usageLimits";
+} from "@t3tools/client-runtime/usageLimits";
 
 export interface SubscriptionUsageSnapshot {
   url?: string;
@@ -48,16 +48,11 @@ function subscriptionUsageProps(
   now: number,
 ): SubscriptionUsageSnapshot {
   const pools = collectLimitPools(accounts, now);
-  const checked = accounts
-    .filter((account) => account.driver === "codex" || account.driver === "claudeAgent")
-    .map((account) => Date.parse(account.limits.checkedAt));
+  const checked = accounts.map((account) => Date.parse(account.limits.checkedAt));
   return {
     checkedAt: checked.length > 0 && checked.every(Number.isFinite) ? Math.min(...checked) : 0,
-    providers: (["codex", "claudeAgent"] as const).map((driver) => {
-      const pool = pools.find((candidate) => candidate.driver === driver);
-      const name = driver === "codex" ? "Codex" : "Claude";
-      if (!pool)
-        return { name, detail: "No limits available", windows: [], expiresAt: 0, totalWindows: 0 };
+    providers: pools.map((pool) => {
+      const name = String(pool.driver);
       const checkedAt = Math.min(...pool.accounts.map((a) => Date.parse(a.limits.checkedAt)));
       const expiresAt = Math.min(
         checkedAt + SNAPSHOT_MAX_AGE,

@@ -10,7 +10,7 @@ import {
   remainingPercent,
   type LimitAccount,
   type LimitPoolWindow,
-} from "@t3tools/shared/usageLimits";
+} from "@t3tools/client-runtime/usageLimits";
 import { useId, useState } from "react";
 import { Pressable, ScrollView, View } from "react-native";
 import { Defs, Path, Pattern, Rect, Svg } from "react-native-svg";
@@ -22,9 +22,8 @@ import { ProviderIcon } from "../../components/ProviderIcon";
 import { SettingsScreen } from "../settings/components/SettingsScreen";
 import { environmentPresentations } from "../../state/presentation";
 import { ResetCredits } from "./UsageLimitsSection";
-import { useProviderColors } from "./usageProviders";
 
-const DRIVER_LABEL: Partial<Record<string, string>> = { codex: "Codex", claudeAgent: "Claude" };
+const DRIVER_LABEL: Partial<Record<string, string>> = {};
 const PACE_LABEL = { ahead: "Ahead of pace", on: "On pace", under: "Under pace" } as const;
 
 function accountName(account: LimitAccount) {
@@ -208,7 +207,6 @@ export function UsageLimitsSection({
       : new Map([...presentations].filter(([id]) => selectedEnvironmentIds.has(id)));
   const pools = collectLimitPools(collectLimitAccounts(selected), now);
   const notices = collectLimitNotices(selected);
-  const colors = useProviderColors();
   return (
     <View className="gap-6">
       {pools.length === 0 && notices.length === 0 && failedLabels.length === 0 ? (
@@ -230,7 +228,7 @@ export function UsageLimitsSection({
             <PoolWindowCard
               key={`${window.kind}:${window.id}`}
               pool={window}
-              color={pool.driver === "claudeAgent" ? colors.claude : colors.codex}
+              color="#888888"
               now={now}
               environmentIds={selectedEnvironmentIds === null ? null : [...selectedEnvironmentIds]}
             />

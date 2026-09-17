@@ -87,7 +87,7 @@ describe("customModelEditor.logic", () => {
           },
         ],
       },
-      ProviderDriverKind.make("claudeAgent"),
+      ProviderDriverKind.make("otherDriver"),
     );
     expect(descriptors[0]!.choices.map((choice) => choice.isDefault)).toEqual([false, true]);
     expect(
@@ -111,7 +111,7 @@ describe("customModelEditor.logic", () => {
           },
         ],
       },
-      ProviderDriverKind.make("claudeAgent"),
+      ProviderDriverKind.make("otherDriver"),
     );
     expect(copied!.choices.map((choice) => choice.id)).toEqual(["high"]);
   });
@@ -154,7 +154,7 @@ describe("customModelEditor.logic", () => {
         { id: "thinking", label: "Thinking", type: "boolean", currentValue: true },
       ],
     };
-    const claude = ProviderDriverKind.make("claudeAgent");
+    const claude = ProviderDriverKind.make("otherDriver");
     const copied = definitionFromDraft(
       draft({ descriptors: descriptorsFromCapabilities(capabilities, claude) }),
     );
@@ -194,7 +194,7 @@ describe("customModelEditor.logic", () => {
       draft({
         descriptors: descriptorsFromCapabilities(
           capabilities,
-          ProviderDriverKind.make("claudeAgent"),
+          ProviderDriverKind.make("otherDriver"),
         ),
       }),
     );

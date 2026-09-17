@@ -1,6 +1,5 @@
 import {
   type CustomModelSetting,
-  MODEL_SLUG_ALIASES_BY_PROVIDER,
   ModelCapabilities,
   type ModelSelection,
   ProviderDriverKind,
@@ -10,8 +9,6 @@ import {
 } from "@t3tools/contracts";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
-
-const DEFAULT_PROVIDER_DRIVER_KIND = ProviderDriverKind.make("codex");
 
 export interface SelectableModelOption {
   slug: string;
@@ -225,25 +222,8 @@ export function isClaudeUltrathinkPrompt(text: string | null | undefined): boole
   return typeof text === "string" && /\bultrathink\b/i.test(text);
 }
 
-/** Compare Codex model families without changing provider-owned dispatch identifiers. */
-export function codexModelFamily(slug: string): string {
-  return slug.startsWith("openai.gpt-") ? slug.slice("openai.".length) : slug;
-}
-
-export function normalizeModelSlug(
-  model: string | null | undefined,
-  provider: ProviderDriverKind = DEFAULT_PROVIDER_DRIVER_KIND,
-): string | null {
-  const trimmed = normalizeCustomModelSlug(model);
-  if (!trimmed) {
-    return null;
-  }
-
-  const aliases = MODEL_SLUG_ALIASES_BY_PROVIDER[provider] ?? {};
-  const aliased = Object.prototype.hasOwnProperty.call(aliases, trimmed)
-    ? aliases[trimmed]
-    : undefined;
-  return typeof aliased === "string" ? aliased : trimmed;
+export function normalizeModelSlug(model: string | null | undefined): string | null {
+  return normalizeCustomModelSlug(model);
 }
 
 /** Custom model identifiers are provider-owned, so only trim them; never expand aliases. */
@@ -351,7 +331,7 @@ export function resolveSelectableModel(
     return byAlias.slug;
   }
 
-  const normalized = normalizeModelSlug(trimmed, provider);
+  const normalized = normalizeModelSlug(trimmed);
   if (!normalized) {
     return null;
   }

@@ -1,6 +1,5 @@
 import {
   DEFAULT_MODEL,
-  DEFAULT_MODEL_BY_PROVIDER,
   defaultInstanceIdForDriver,
   ProviderDriverKind,
   type ModelCapabilities,
@@ -13,7 +12,6 @@ import { createModelCapabilities, resolveSelectableModel } from "@t3tools/shared
 const EMPTY_CAPABILITIES: ModelCapabilities = createModelCapabilities({
   optionDescriptors: [],
 });
-const DEFAULT_DRIVER_KIND = ProviderDriverKind.make("codex");
 
 export function formatProviderDriverKindLabel(provider: ProviderDriverKind): string {
   return provider
@@ -40,16 +38,16 @@ function getProviderSnapshot(
 
 // Resolve an instance selection to the correlated live driver. If the
 // instance is absent, fall back to a live enabled provider instead of
-// inferring a driver from the missing instance id.
+// inferring a driver from the missing instance id. Zero providers is valid.
 export function resolveSelectableProvider(
   providers: ReadonlyArray<ServerProvider>,
   provider: ProviderDriverKind | ProviderInstanceId | null | undefined,
-): ProviderDriverKind {
+): ProviderDriverKind | undefined {
   const requestedEntry = providers.find((candidate) => candidate.instanceId === provider);
   if (requestedEntry?.enabled) {
     return requestedEntry.driver;
   }
-  return providers.find((candidate) => candidate.enabled)?.driver ?? DEFAULT_DRIVER_KIND;
+  return providers.find((candidate) => candidate.enabled)?.driver;
 }
 
 export function getProviderModelCapabilities(
@@ -67,7 +65,7 @@ export function getProviderModelCapabilities(
   return withoutPlanAgentOption(caps);
 }
 
-// The opencode "plan" agent is only reachable while legacy plan mode is on.
+// The "plan" agent option is only reachable while legacy plan mode is on.
 // With it off, drop the option so it cannot be selected or dispatched, and
 // drop the descriptor entirely when nothing remains selectable. currentValue
 // is re-resolved against the surviving options so a stale or defaulted "plan"
@@ -101,7 +99,6 @@ export function getDefaultServerModel(
     models.find((model) => model.isDefault && !model.isCustom)?.slug ??
     models.find((model) => !model.isCustom)?.slug ??
     models[0]?.slug ??
-    DEFAULT_MODEL_BY_PROVIDER[provider] ??
     DEFAULT_MODEL
   );
 }

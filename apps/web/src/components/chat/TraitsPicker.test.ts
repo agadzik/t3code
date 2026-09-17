@@ -49,7 +49,7 @@ const CONTEXT_WINDOW = selectDescriptor(
   "1m",
 );
 
-const CODEX = ProviderDriverKind.make("codex");
+const CODEX = ProviderDriverKind.make("testDriver");
 
 function display(descriptors: ReadonlyArray<ProviderOptionDescriptor>) {
   return buildTraitsTriggerDisplay({

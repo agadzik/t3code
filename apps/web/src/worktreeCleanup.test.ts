@@ -13,7 +13,7 @@ function makeThread(overrides: Partial<Thread> = {}): Thread {
     projectId: ProjectId.make("project-1"),
     title: "Thread",
     modelSelection: {
-      instanceId: ProviderInstanceId.make("codex"),
+      instanceId: ProviderInstanceId.make("testDriver"),
       model: "gpt-5.3-codex",
     },
     runtimeMode: DEFAULT_RUNTIME_MODE,

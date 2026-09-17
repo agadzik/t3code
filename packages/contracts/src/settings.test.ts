@@ -5,7 +5,6 @@ import { ProviderDriverKind, ProviderInstanceId } from "./providerInstance.ts";
 import {
   ClientSettingsSchema,
   ClientSettingsPatch,
-  ClaudeSettings,
   DEFAULT_SERVER_SETTINGS,
   resolveProviderInstanceEnabled,
   ServerSettings,
@@ -18,7 +17,6 @@ const encodeClientSettings = Schema.encodeSync(ClientSettingsSchema);
 const decodeServerSettings = Schema.decodeUnknownSync(ServerSettings);
 const decodeServerSettingsPatch = Schema.decodeUnknownSync(ServerSettingsPatch);
 const encodeServerSettings = Schema.encodeSync(ServerSettings);
-const decodeClaudeSettings = Schema.decodeUnknownSync(ClaudeSettings);
 
 describe("ClientSettings rich text composer", () => {
   it("enables rich text for new and existing settings without a saved preference", () => {
@@ -114,66 +112,50 @@ describe("ServerSettings usage price overrides", () => {
   });
 });
 
-describe("custom model settings", () => {
-  const capabilities = {
-    optionDescriptors: [
-      {
-        id: "effort",
-        label: "Reasoning",
-        type: "select",
-        options: [{ id: "high", label: "High", isDefault: true }],
+describe("legacy providers map migration", () => {
+  it("decodes settings that still carry all six legacy provider keys plus unknown instances", () => {
+    const decoded = decodeServerSettings({
+      providers: {
+        codex: { enabled: true, binaryPath: "/usr/bin/codex" },
+        claudeAgent: { enabled: true, homePath: "~/.claude" },
+        cursor: { enabled: false, binaryPath: "cursor-agent" },
+        grok: { enabled: false },
+        opencode: { enabled: false, serverUrl: "http://127.0.0.1:4096" },
+        antigravity: { enabled: false, authMethod: "oauth-personal" },
       },
-    ],
-  };
-
-  it("accepts legacy bare slugs alongside full entries", () => {
-    const decoded = decodeClaudeSettings({
-      customModels: ["bare-slug", { slug: "named", name: "Named", capabilities }],
+      providerInstances: {
+        testDriver: {
+          driver: "testDriver",
+          displayName: "Test",
+          config: { endpoint: "http://localhost:1" },
+        },
+        unknownFork: {
+          driver: "ollama",
+          config: { extra: true },
+        },
+      },
     });
-    expect(decoded.customModels).toEqual([
-      "bare-slug",
-      { slug: "named", name: "Named", capabilities },
-    ]);
+
+    expect(decoded).not.toHaveProperty("providers");
+    expect(decoded.providerInstances[ProviderInstanceId.make("testDriver")]?.driver).toBe(
+      "testDriver",
+    );
+    expect(decoded.providerInstances[ProviderInstanceId.make("unknownFork")]?.config).toEqual({
+      extra: true,
+    });
   });
 
-  it("accepts entries at the settings patch boundary", () => {
-    expect(
-      decodeServerSettingsPatch({
-        providers: { codex: { customModels: [{ slug: "x", capabilities }] } },
-      }).providers?.codex?.customModels,
-    ).toEqual([{ slug: "x", capabilities }]);
-    expect(() =>
-      decodeServerSettingsPatch({ providers: { codex: { customModels: [{ name: "no slug" }] } } }),
-    ).toThrow();
-  });
-});
-
-describe("ClaudeSettings auto-compaction", () => {
-  it("uses Claude's default threshold when no override is configured", () => {
-    expect(decodeClaudeSettings({}).autoCompactWindow).toBe("");
-  });
-
-  it.each(["100000", "300000", "1000000"])(
-    "accepts a supported auto-compaction threshold: %s",
-    (value) => {
-      expect(decodeClaudeSettings({ autoCompactWindow: value }).autoCompactWindow).toBe(value);
-    },
-  );
-
-  it.each(["99999", "1000001", "300k", "invalid"])(
-    "rejects an unsupported auto-compaction threshold: %s",
-    (value) => {
-      expect(() => decodeClaudeSettings({ autoCompactWindow: value })).toThrow();
-    },
-  );
-
-  it("rejects an unsupported threshold at the settings patch boundary", () => {
-    expect(() =>
-      decodeServerSettingsPatch({ providers: { claudeAgent: { autoCompactWindow: "300k" } } }),
-    ).toThrow();
-    expect(
-      decodeServerSettingsPatch({ providers: { claudeAgent: { autoCompactWindow: "300000" } } }),
-    ).toBeDefined();
+  it("drops legacy providers keys from patches without error", () => {
+    const patch = decodeServerSettingsPatch({
+      providers: { codex: { binaryPath: "/opt/codex" } },
+      providerInstances: {
+        testDriver: { driver: "testDriver", config: {} },
+      },
+    });
+    expect(patch).not.toHaveProperty("providers");
+    expect(patch.providerInstances?.[ProviderInstanceId.make("testDriver")]?.driver).toBe(
+      "testDriver",
+    );
   });
 });
 
@@ -644,9 +626,7 @@ describe("ServerSettings.providerInstances (slice-2 invariant)", () => {
   it("decodes a fully empty config (legacy on-disk shape) without complaint", () => {
     const decoded = decodeServerSettings({});
     expect(decoded.providerInstances).toEqual({});
-    // Legacy `providers` struct is still hydrated with its per-driver defaults
-    // so existing call sites keep working through the migration.
-    expect(decoded.providers.codex.enabled).toBe(true);
+    expect(decoded).not.toHaveProperty("providers");
   });
 
   it("decodes a multi-instance map mixing first-party and fork drivers", () => {
@@ -693,52 +673,52 @@ describe("ServerSettings.providerInstances (slice-2 invariant)", () => {
 });
 
 describe("provider enabled defaults", () => {
-  it("enables only the stable bindings by default", () => {
-    const decoded = decodeServerSettings({});
-    expect(decoded.providers.codex.enabled).toBe(true);
-    expect(decoded.providers.claudeAgent.enabled).toBe(true);
-    expect(decoded.providers.cursor.enabled).toBe(false);
-    expect(decoded.providers.grok.enabled).toBe(false);
-    expect(decoded.providers.opencode.enabled).toBe(false);
-  });
-
-  it("keeps Cursor enabled when an existing user explicitly opted in", () => {
-    const cursor = ProviderDriverKind.make("cursor");
-    const cursorId = ProviderInstanceId.make("cursor");
-    const decoded = decodeServerSettings({
-      providers: { cursor: { enabled: true } },
-      providerInstances: {
-        [cursorId]: { driver: cursor, enabled: true, config: {} },
-      },
-    });
-
-    expect(decoded.providers.cursor.enabled).toBe(true);
-    expect(resolveProviderInstanceEnabled(decoded.providerInstances[cursorId]!)).toBe(true);
-  });
-
-  it("resolves instance enabled state with explicit false winning", () => {
-    const grok = ProviderDriverKind.make("grok");
-    const codex = ProviderDriverKind.make("codex");
-    // No flags anywhere: driver default applies.
-    expect(resolveProviderInstanceEnabled({ driver: grok, config: {} })).toBe(false);
-    expect(resolveProviderInstanceEnabled({ driver: codex, config: {} })).toBe(true);
-    // Unknown fork drivers stay enabled.
+  it("enables instances that carry no explicit flag", () => {
+    const testDriver = ProviderDriverKind.make("testDriver");
+    expect(resolveProviderInstanceEnabled({ driver: testDriver, config: {} })).toBe(true);
     expect(
       resolveProviderInstanceEnabled({ driver: ProviderDriverKind.make("ollama"), config: {} }),
     ).toBe(true);
-    // Envelope flag wins over the driver default.
-    expect(resolveProviderInstanceEnabled({ driver: grok, enabled: true, config: {} })).toBe(true);
-    expect(resolveProviderInstanceEnabled({ driver: codex, enabled: false, config: {} })).toBe(
+  });
+
+  it("keeps an instance enabled when the envelope says so", () => {
+    const testDriver = ProviderDriverKind.make("testDriver");
+    const instanceId = ProviderInstanceId.make("testDriver");
+    const decoded = decodeServerSettings({
+      providers: { cursor: { enabled: true } },
+      providerInstances: {
+        [instanceId]: { driver: testDriver, enabled: true, config: {} },
+      },
+    });
+
+    expect(decoded).not.toHaveProperty("providers");
+    expect(resolveProviderInstanceEnabled(decoded.providerInstances[instanceId]!)).toBe(true);
+  });
+
+  it("resolves instance enabled state with explicit false winning", () => {
+    const testDriver = ProviderDriverKind.make("testDriver");
+    expect(resolveProviderInstanceEnabled({ driver: testDriver, enabled: true, config: {} })).toBe(
+      true,
+    );
+    expect(resolveProviderInstanceEnabled({ driver: testDriver, enabled: false, config: {} })).toBe(
       false,
     );
-    // Legacy in-config flag fills in when the envelope is silent.
-    expect(resolveProviderInstanceEnabled({ driver: grok, config: { enabled: true } })).toBe(true);
-    // Conflicting flags: the explicit false wins, whichever side it is on.
+    expect(resolveProviderInstanceEnabled({ driver: testDriver, config: { enabled: true } })).toBe(
+      true,
+    );
     expect(
-      resolveProviderInstanceEnabled({ driver: grok, enabled: true, config: { enabled: false } }),
+      resolveProviderInstanceEnabled({
+        driver: testDriver,
+        enabled: true,
+        config: { enabled: false },
+      }),
     ).toBe(false);
     expect(
-      resolveProviderInstanceEnabled({ driver: codex, enabled: false, config: { enabled: true } }),
+      resolveProviderInstanceEnabled({
+        driver: testDriver,
+        enabled: false,
+        config: { enabled: true },
+      }),
     ).toBe(false);
   });
 });
@@ -839,9 +819,7 @@ describe("ServerSettingsPatch string normalization", () => {
     expect(patch.addProjectBaseDirectory).toBe("~/Development");
     expect(patch.textGenerationModelSelection?.model).toBe("gpt-5.4-mini");
     expect(patch.observability?.otlpTracesUrl).toBe("http://localhost:4318/v1/traces");
-    expect(patch.providers?.codex?.binaryPath).toBe("/opt/homebrew/bin/codex");
-    expect(patch.providers?.codex?.homePath).toBe("~/.codex");
-    expect(patch.providers?.codex?.launchArgs).toBe("--strict-config --enable foo");
+    expect(patch).not.toHaveProperty("providers");
     expect(patch.providerInstances?.[ProviderInstanceId.make("codex_personal")]?.driver).toBe(
       "codex",
     );
@@ -858,19 +836,10 @@ describe("ServerSettingsPatch string normalization", () => {
     const encoded = encodeServerSettings({
       ...defaultSettings,
       addProjectBaseDirectory: "  ~/Development  ",
-      providers: {
-        ...defaultSettings.providers,
-        codex: {
-          ...defaultSettings.providers.codex,
-          binaryPath: "  /opt/homebrew/bin/codex  ",
-          launchArgs: "  --strict-config  ",
-        },
-      },
     });
 
     expect(encoded.addProjectBaseDirectory).toBe("~/Development");
-    expect(encoded.providers?.codex?.binaryPath).toBe("/opt/homebrew/bin/codex");
-    expect(encoded.providers?.codex?.launchArgs).toBe("--strict-config");
+    expect(encoded).not.toHaveProperty("providers");
   });
 });
 

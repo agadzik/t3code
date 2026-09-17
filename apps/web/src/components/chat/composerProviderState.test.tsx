@@ -19,7 +19,7 @@ import {
 // optionDescriptors, so these tests use a single synthetic provider/model and
 // vary only the descriptor shape per scenario.
 
-const PROVIDER: ProviderDriverKind = ProviderDriverKind.make("codex");
+const PROVIDER: ProviderDriverKind = ProviderDriverKind.make("testDriver");
 const MODEL = "test-model";
 
 function selectDescriptor(
@@ -249,7 +249,7 @@ describe("getComposerProviderState", () => {
 
   it("preserves explicit options when the selected model is absent from the catalog", () => {
     const state = getComposerProviderState({
-      provider: ProviderDriverKind.make("opencode"),
+      provider: ProviderDriverKind.make("thirdDriver"),
       model: "opencode/kimi-k3",
       models: [
         {
@@ -285,7 +285,7 @@ describe("getComposerProviderState", () => {
 
   it("preserves explicit options while the catalog is empty", () => {
     const state = getComposerProviderState({
-      provider: ProviderDriverKind.make("opencode"),
+      provider: ProviderDriverKind.make("thirdDriver"),
       model: "opencode/kimi-k3",
       models: [],
       modelOptions: selections(["variant", "max"], ["agent", "build"]),
@@ -299,7 +299,7 @@ describe("getComposerProviderState", () => {
 
   it("validates options for a known model selected through a legacy alias", () => {
     const state = getComposerProviderState({
-      provider: ProviderDriverKind.make("claudeAgent"),
+      provider: ProviderDriverKind.make("otherDriver"),
       model: "legacy-test-model",
       models: [
         {
@@ -326,7 +326,7 @@ describe("getComposerProviderState", () => {
 
   it("still drops the plan agent when an absent model has a saved plan selection", () => {
     const state = getComposerProviderState({
-      provider: ProviderDriverKind.make("opencode"),
+      provider: ProviderDriverKind.make("thirdDriver"),
       model: "opencode/kimi-k3",
       models: [],
       modelOptions: selections(["variant", "max"], ["agent", "plan"]),

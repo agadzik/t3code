@@ -374,8 +374,7 @@ function isTerminalTaskUpdate(activity: OrchestrationThreadActivity): boolean {
  * Quiet-timeline guarantee (mirrors web's session-logic): agent-internal
  * activity lives in the Agents sheet, not the work log. Agent lifecycle rows
  * pass even when bypassed or owned by another agent, because they fold into
- * their spawn batch rather than rendering on their own; that is how Codex
- * children (all bypassed) and Claude workflow members reach the batch row.
+ * their spawn batch rather than rendering on their own; that is how bypassed children and workflow members reach the batch row.
  * Terminal rows are kept regardless — with no Agents surface on mobile they
  * are the terminal signal.
  */
@@ -617,7 +616,7 @@ function toDerivedWorkLogEntry(activity: OrchestrationThreadActivity): DerivedWo
   ) {
     toolLifecycleStatus = activity.tone === "error" ? "failed" : "completed";
   }
-  // A Codex child that finishes its turn reports "idle" (resumable, not
+  // A child that finishes its turn reports "idle" (resumable, not
   // terminal). For the batch row that is a finished member.
   if (!toolLifecycleStatus && isTaskActivity && payload?.status === "idle") {
     toolLifecycleStatus = "completed";

@@ -4,8 +4,8 @@ import { describe, expect, it } from "vite-plus/test";
 import { getProviderSummary } from "./providerStatus";
 
 const provider: ServerProvider = {
-  instanceId: ProviderInstanceId.make("codex"),
-  driver: ProviderDriverKind.make("codex"),
+  instanceId: ProviderInstanceId.make("testDriver"),
+  driver: ProviderDriverKind.make("testDriver"),
   enabled: true,
   installed: true,
   version: "1.0.0",

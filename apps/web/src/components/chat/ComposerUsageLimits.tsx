@@ -1,5 +1,5 @@
 import type { EnvironmentId, UsageLimitsReport } from "@t3tools/contracts";
-import { limitsNotice } from "@t3tools/shared/usageLimits";
+import { limitsNotice } from "@t3tools/client-runtime/usageLimits";
 import { GaugeIcon } from "lucide-react";
 
 import { getDriverOption } from "../settings/providerDriverMeta";

@@ -83,8 +83,8 @@ describe("deriveProviderModelsForDisplay", () => {
   });
 
   it("shows a redacted provider email in the editor header status line", () => {
-    const instanceId = ProviderInstanceId.make("codex");
-    const driver = ProviderDriverKind.make("codex");
+    const instanceId = ProviderInstanceId.make("testDriver");
+    const driver = ProviderDriverKind.make("testDriver");
     const liveProvider: ServerProvider = {
       instanceId,
       driver,
@@ -122,8 +122,8 @@ describe("deriveProviderModelsForDisplay", () => {
     expect(markup).not.toContain("developer@example.com");
   });
   it("surfaces a failed probe message in both the list row and the editor", () => {
-    const instanceId = ProviderInstanceId.make("codex_work");
-    const driver = ProviderDriverKind.make("codex");
+    const instanceId = ProviderInstanceId.make("testDriver_work");
+    const driver = ProviderDriverKind.make("testDriver");
     const message =
       "Codex app-server provider probe failed: Cannot create Codex shadow home entry 'auth.json' because '/home/me/.codex-t3/work/auth.json' already exists and is not a symlink.";
     const liveProvider: ServerProvider = {

@@ -1,6 +1,5 @@
 import {
   defaultInstanceIdForDriver,
-  PROVIDER_DISPLAY_NAMES,
   type EnvironmentId,
   type ExecutionEnvironmentPlatformOs,
   type ProviderDriverKind,
@@ -114,7 +113,7 @@ function dedupeProvidersByInstanceId<T extends ServerProvider>(providers: Readon
 }
 
 function getProviderUpdatedTitle(provider: Pick<ServerProvider, "driver" | "version">): string {
-  const providerName = PROVIDER_DISPLAY_NAMES[provider.driver] ?? provider.driver;
+  const providerName = provider.driver;
   return provider.version
     ? `${providerName} updated: ${formatVersion(provider.version)}`
     : `${providerName} updated`;
@@ -129,7 +128,7 @@ function getProviderUpdatedDescription(providerCount: number): string {
 function getProviderFailedUpdateTitle(
   provider: Pick<ServerProvider, "driver" | "versionAdvisory">,
 ): string {
-  const providerName = PROVIDER_DISPLAY_NAMES[provider.driver] ?? provider.driver;
+  const providerName = provider.driver;
   const attemptedVersion = provider.versionAdvisory?.latestVersion;
   return attemptedVersion
     ? `${providerName} ${formatVersion(attemptedVersion)} update failed`
@@ -221,9 +220,7 @@ export function providerUpdateNotificationKey(
 }
 
 function formatProviderList(providers: ReadonlyArray<Pick<ServerProvider, "driver">>) {
-  const names = providers.map(
-    (provider) => PROVIDER_DISPLAY_NAMES[provider.driver] ?? provider.driver,
-  );
+  const names = providers.map((provider) => provider.driver);
   if (names.length <= 2) {
     return names.join(" and ");
   }
@@ -396,8 +393,7 @@ export function getProviderUpdateSidebarPillView(
   const activeProviders = dedupedProviders.filter(isProviderUpdateActive);
   if (activeProviders.length > 0) {
     const activeProvider = activeProviders[0]!;
-    const activeProviderName =
-      PROVIDER_DISPLAY_NAMES[activeProvider.driver] ?? activeProvider.driver;
+    const activeProviderName = activeProvider.driver;
     return {
       key: `loading:${activeProviders
         .map((provider) => `${provider.driver}:${provider.updateState?.status ?? "idle"}`)
@@ -448,8 +444,7 @@ export function getProviderUpdateSidebarPillView(
   );
   if (unchangedProviders.length > 0) {
     const unchangedProvider = unchangedProviders[0]!;
-    const unchangedProviderName =
-      PROVIDER_DISPLAY_NAMES[unchangedProvider.driver] ?? unchangedProvider.driver;
+    const unchangedProviderName = unchangedProvider.driver;
     terminalCandidates.push({
       key: `unchanged:${unchangedProviders
         .map(
@@ -521,7 +516,7 @@ function getProviderUpdateInitialToastTitle(
 ): string {
   if (providers.length === 1) {
     const provider = providers[0]!;
-    const providerName = PROVIDER_DISPLAY_NAMES[provider.driver] ?? provider.driver;
+    const providerName = provider.driver;
     return `Update Available: ${providerName} ${formatVersion(provider.versionAdvisory.latestVersion)}`;
   }
   return `Updates Available: ${providers.length} providers`;
@@ -723,9 +718,7 @@ export interface ProviderUpdateRowStatus {
 }
 
 function environmentProviderNames(group: LocalEnvironmentUpdateGroup): string {
-  return group.candidates
-    .map((candidate) => PROVIDER_DISPLAY_NAMES[candidate.driver] ?? candidate.driver)
-    .join(", ");
+  return group.candidates.map((candidate) => candidate.driver).join(", ");
 }
 
 /**

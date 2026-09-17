@@ -247,7 +247,6 @@ import {
   ProviderConsumeResetCreditInput,
   ProviderConsumeResetCreditResult,
 } from "./providerUsageLimits.ts";
-import { UsagePricing, UsageReadError, UsageSummary, UsageSummaryInput } from "./usage.ts";
 import { ServerSettings, ServerSettingsError, ServerSettingsPatch } from "./settings.ts";
 import {
   ProjectCloneActionInput,
@@ -377,8 +376,6 @@ export const WS_METHODS = {
   serverReportClientActivity: "server.reportClientActivity",
   serverReportHostPowerState: "server.reportHostPowerState",
   serverGetBackgroundPolicy: "server.getBackgroundPolicy",
-  serverGetUsageSummary: "server.getUsageSummary",
-  serverRefreshUsageRates: "server.refreshUsageRates",
 
   // Cloud environment methods
   cloudGetRelayClientStatus: "cloud.getRelayClientStatus",
@@ -620,22 +617,6 @@ const WsServerGetResourceTelemetryHistoryRpc = Rpc.make(
 const WsServerRetryResourceTelemetryRpc = Rpc.make(WS_METHODS.serverRetryResourceTelemetry, {
   payload: Schema.Struct({}),
   success: ResourceTelemetryRetryResult,
-  error: EnvironmentAuthorizationError,
-});
-
-const WsServerGetUsageSummaryRpc = Rpc.make(WS_METHODS.serverGetUsageSummary, {
-  payload: UsageSummaryInput,
-  success: UsageSummary,
-  error: Schema.Union([EnvironmentAuthorizationError, UsageReadError]),
-});
-
-/**
- * Refetches the model rate table ahead of its daily TTL, so a model released
- * since the last fetch gets priced. The next usage summary uses the new table.
- */
-const WsServerRefreshUsageRatesRpc = Rpc.make(WS_METHODS.serverRefreshUsageRates, {
-  payload: Schema.Struct({}),
-  success: UsagePricing,
   error: EnvironmentAuthorizationError,
 });
 
@@ -1386,8 +1367,6 @@ export const WsRpcGroup = RpcGroup.make(
   WsServerGetProcessResourceHistoryRpc,
   WsServerGetResourceTelemetryHistoryRpc,
   WsServerRetryResourceTelemetryRpc,
-  WsServerGetUsageSummaryRpc,
-  WsServerRefreshUsageRatesRpc,
   WsServerSignalProcessRpc,
   WsServerReportClientActivityRpc,
   WsServerReportHostPowerStateRpc,

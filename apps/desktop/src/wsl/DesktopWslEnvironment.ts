@@ -509,7 +509,7 @@ const formatNodePtyProbeFailureReason = (exitCode: number): string | null =>
     : null;
 
 // Captures the login-shell PATH as `resolvedPath:` so the launch can forward the
-// user's PATH; the server spawns provider CLIs (`codex`, `claude`) by name.
+// user's PATH; the server spawns provider CLIs by name.
 const RESOLVED_PATH_LINE = `printf 'resolvedPath:%s\\n' "$PATH"`;
 
 const NODE_PTY_PROBE_SCRIPT = (

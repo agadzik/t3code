@@ -6,12 +6,12 @@ describe("buildModelPickerSearchText", () => {
   it("builds provider-agnostic search text from generic fields", () => {
     expect(
       buildModelPickerSearchText({
-        driverKind: "opencode",
+        driverKind: "thirdDriver",
         providerDisplayName: "opencode",
         name: "Claude Opus 4.7",
         subProvider: "GitHub Copilot",
       }),
-    ).toBe("claude opus 4.7 github copilot opencode opencode");
+    ).toBe("claude opus 4.7 github copilot thirddriver opencode");
   });
 });
 
@@ -20,7 +20,7 @@ describe("scoreModelPickerSearch", () => {
     expect(
       scoreModelPickerSearch(
         {
-          driverKind: "opencode",
+          driverKind: "thirdDriver",
           providerDisplayName: "opencode",
           name: "Claude Opus 4.7",
           subProvider: "GitHub Copilot",
@@ -34,7 +34,7 @@ describe("scoreModelPickerSearch", () => {
     expect(
       scoreModelPickerSearch(
         {
-          driverKind: "codex",
+          driverKind: "testDriver",
           providerDisplayName: "codex",
           name: "GPT-5 Codex",
         },
@@ -46,7 +46,7 @@ describe("scoreModelPickerSearch", () => {
   it("ranks exact token matches ahead of fuzzier matches", () => {
     const exactScore = scoreModelPickerSearch(
       {
-        driverKind: "opencode",
+        driverKind: "thirdDriver",
         providerDisplayName: "opencode",
         name: "Claude Opus 4.7",
         subProvider: "GitHub Copilot",
@@ -55,7 +55,7 @@ describe("scoreModelPickerSearch", () => {
     );
     const fuzzyScore = scoreModelPickerSearch(
       {
-        driverKind: "opencode",
+        driverKind: "thirdDriver",
         providerDisplayName: "opencode",
         name: "Claude Opus 4.7",
         subProvider: "GitHub Copilot",
@@ -71,7 +71,7 @@ describe("scoreModelPickerSearch", () => {
   it("gives favorite models a strong enough ranking boost for partial queries", () => {
     const favoriteScore = scoreModelPickerSearch(
       {
-        driverKind: "claudeAgent",
+        driverKind: "otherDriver",
         providerDisplayName: "Claude",
         name: "Claude Opus 4.7",
         isFavorite: true,
@@ -95,7 +95,7 @@ describe("scoreModelPickerSearch", () => {
   it("does not let the favorite boost outrank clearly better textual matches", () => {
     const favoriteScore = scoreModelPickerSearch(
       {
-        driverKind: "claudeAgent",
+        driverKind: "otherDriver",
         providerDisplayName: "Claude",
         name: "Claude Opus 4.7",
         isFavorite: true,
@@ -120,7 +120,7 @@ describe("scoreModelPickerSearch", () => {
     expect(
       scoreModelPickerSearch(
         {
-          driverKind: "codex",
+          driverKind: "testDriver",
           providerDisplayName: "Codex Personal",
           name: "GPT-5 Codex",
         },

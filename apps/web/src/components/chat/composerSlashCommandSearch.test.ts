@@ -8,7 +8,7 @@ import {
 } from "./composerSlashCommandSearch";
 
 describe("searchSlashCommandItems", () => {
-  const claudeDriver = ProviderDriverKind.make("claudeAgent");
+  const claudeDriver = ProviderDriverKind.make("otherDriver");
 
   it("moves exact provider command matches ahead of broader description matches", () => {
     const items = [

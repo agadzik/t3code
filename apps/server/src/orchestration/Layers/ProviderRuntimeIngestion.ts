@@ -30,7 +30,6 @@ import * as Option from "effect/Option";
 import * as Predicate from "effect/Predicate";
 import * as Stream from "effect/Stream";
 import { makeDrainableWorker } from "@t3tools/shared/DrainableWorker";
-import { formatTokens } from "@t3tools/shared/usageFormat";
 
 import { ProviderService } from "../../provider/Services/ProviderService.ts";
 import { ProjectionTurnRepository } from "../../persistence/Services/ProjectionTurns.ts";
@@ -63,6 +62,14 @@ const segmentStateKey = (threadId: ThreadId, turnId: TurnId, role: MessageStream
     ? `${providerTurnKey(threadId, turnId)}:reasoning`
     : providerTurnKey(threadId, turnId);
 const providerTaskKey = (threadId: ThreadId, taskId: string) => `${threadId}:${taskId}`;
+
+function formatTokens(value: number): string {
+  const abs = Math.abs(value);
+  if (abs >= 1_000_000_000) return `${(value / 1_000_000_000).toPrecision(3)}B`;
+  if (abs >= 1_000_000) return `${(value / 1_000_000).toPrecision(3)}M`;
+  if (abs >= 1_000) return `${(value / 1_000).toPrecision(3)}K`;
+  return String(Math.round(value));
+}
 
 // Fallback when the in-memory description cache no longer has the task name
 // (server restart, session-exit sweep, TTL/capacity eviction): earlier

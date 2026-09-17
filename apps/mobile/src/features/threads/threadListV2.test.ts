@@ -43,7 +43,7 @@ function makeThread(
   return {
     environmentId,
     projectId: ProjectId.make("project-1"),
-    modelSelection: { instanceId: ProviderInstanceId.make("codex"), model: "gpt-5.4" },
+    modelSelection: { instanceId: ProviderInstanceId.make("testDriver"), model: "gpt-5.4" },
     runtimeMode: "full-access",
     interactionMode: "default",
     branch: null,
@@ -153,7 +153,7 @@ describe("resolveThreadListV2Status", () => {
         threadId: ThreadId.make("t"),
         status: "running",
         providerName: "Codex",
-        providerInstanceId: ProviderInstanceId.make("codex"),
+        providerInstanceId: ProviderInstanceId.make("testDriver"),
         runtimeMode: "full-access",
         activeTurnId: null,
         lastError: null,

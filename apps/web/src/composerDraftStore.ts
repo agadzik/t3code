@@ -2,7 +2,6 @@ import { elementContextToPreviewAnnotation } from "./lib/elementContext";
 import {
   ElementContextDetails,
   DEFAULT_MODEL,
-  DEFAULT_MODEL_BY_PROVIDER,
   defaultInstanceIdForDriver,
   EnvironmentId,
   ModelSelection,
@@ -1050,13 +1049,7 @@ function normalizeModelSelection(
   if (typeof rawModel !== "string") {
     return null;
   }
-  // Slug normalization can use provider-kind-specific rules when a legacy
-  // driver key is present. Instance-only selections are not reverse-inferred
-  // into a driver kind here; they get generic default normalization.
-  const driverKindHint =
-    normalizeProviderDriverKind(candidate?.provider ?? legacy?.provider) ??
-    ProviderDriverKind.make("codex");
-  const model = normalizeModelSlug(rawModel, driverKindHint);
+  const model = normalizeModelSlug(rawModel);
   if (!model) {
     return null;
   }
@@ -1072,7 +1065,7 @@ function normalizeModelSelection(
     ? normalizeProviderModelOptions(
         candidate?.options ? { [kindForLegacyOptions]: candidate.options } : legacy?.modelOptions,
         kindForLegacyOptions,
-        kindForLegacyOptions === "codex" ? legacy?.legacyCodex : undefined,
+        undefined,
       )
     : null;
   const options = kindForLegacyOptions ? modelOptions?.[kindForLegacyOptions] : undefined;
@@ -1146,16 +1139,14 @@ function legacyToModelSelectionByProvider(
 ): Partial<Record<ProviderInstanceId, ModelSelection>> {
   const result: Partial<Record<ProviderInstanceId, ModelSelection>> = {};
   if (modelOptions) {
-    for (const provider of ["codex", "claudeAgent", "cursor", "opencode"] as const) {
-      const options = modelOptions[provider];
+    for (const provider of Object.keys(modelOptions)) {
+      const options = modelOptions[provider as keyof typeof modelOptions];
       if (options && options.length > 0) {
         const driverKind = ProviderDriverKind.make(provider);
         const instanceKey = defaultInstanceIdForDriver(driverKind);
         result[instanceKey] = createModelSelection(
           instanceKey,
-          modelSelection?.instanceId === instanceKey
-            ? modelSelection.model
-            : (DEFAULT_MODEL_BY_PROVIDER[driverKind] ?? DEFAULT_MODEL),
+          modelSelection?.instanceId === instanceKey ? modelSelection.model : DEFAULT_MODEL,
           options,
         );
       }
@@ -1202,15 +1193,13 @@ export function deriveEffectiveComposerModelState(input: {
           { preserveUnavailableSelection: preserveThreadModel },
         )
       : null) ??
-    // Antigravity has no static model or cross-account catalog fallback.
-    (input.selectedProvider === "antigravity" && input.selectedInstanceId ? "" : null) ??
     resolveAppModelSelection(
       input.selectedProvider,
       input.settings,
       input.providers,
       baseModelCandidate,
     ) ??
-    normalizeModelSlug(baseModelCandidate, input.selectedProvider) ??
+    normalizeModelSlug(baseModelCandidate) ??
     getDefaultServerModel(input.providers, input.selectedProvider);
   // Look up the instance's saved selection first; fall back to the
   // driver-kind bucket so legacy kind-keyed drafts still resolve. Every
@@ -1220,11 +1209,7 @@ export function deriveEffectiveComposerModelState(input: {
     ? input.draft?.modelSelectionByProvider?.[input.selectedInstanceId]
     : undefined;
   const legacySelection =
-    input.selectedProvider === "antigravity" &&
-    input.selectedInstanceId &&
-    input.selectedInstanceId !== defaultInstanceIdForDriver(input.selectedProvider)
-      ? undefined
-      : input.draft?.modelSelectionByProvider?.[ProviderInstanceId.make(input.selectedProvider)];
+    input.draft?.modelSelectionByProvider?.[ProviderInstanceId.make(input.selectedProvider)];
   const activeSelection = instanceSelection ?? legacySelection;
   const activeSelectionInstanceId = instanceSelection
     ? (input.selectedInstanceId ?? ProviderInstanceId.make(input.selectedProvider))
@@ -1237,7 +1222,6 @@ export function deriveEffectiveComposerModelState(input: {
         activeSelection.model,
         { preserveUnavailableSelection: true },
       ) ??
-      (input.selectedProvider === "antigravity" ? "" : null) ??
       resolveAppModelSelection(
         input.selectedProvider,
         input.settings,
@@ -1252,7 +1236,7 @@ export function deriveEffectiveComposerModelState(input: {
     null;
 
   return {
-    selectedModel,
+    selectedModel: selectedModel ?? "",
     modelOptions,
   };
 }
@@ -3103,16 +3087,16 @@ const composerDraftStore = create<ComposerDraftStoreState>()(
             }
             const base = existing ?? createEmptyThreadDraft();
             const nextMap = { ...base.modelSelectionByProvider };
-            for (const provider of ["codex", "claudeAgent", "cursor", "opencode"] as const) {
+            for (const provider of Object.keys(modelOptions ?? {})) {
               if (!modelOptions || !(provider in modelOptions)) continue;
-              const opts = modelOptions[provider];
+              const opts = modelOptions[provider as keyof typeof modelOptions];
               const driverKind = ProviderDriverKind.make(provider);
               const instanceKey = defaultInstanceIdForDriver(driverKind);
               const current = nextMap[instanceKey];
               if (opts && opts.length > 0) {
                 nextMap[instanceKey] = createModelSelection(
                   instanceKey,
-                  current?.model ?? DEFAULT_MODEL_BY_PROVIDER[driverKind] ?? DEFAULT_MODEL,
+                  current?.model ?? DEFAULT_MODEL,
                   opts,
                 );
               } else if (current?.options) {
@@ -3146,10 +3130,7 @@ const composerDraftStore = create<ComposerDraftStoreState>()(
             return;
           }
           const instanceKey = options?.instanceId ?? defaultInstanceIdForDriver(normalizedProvider);
-          const fallbackModel =
-            normalizeModelSlug(options?.model, normalizedProvider) ??
-            DEFAULT_MODEL_BY_PROVIDER[normalizedProvider] ??
-            DEFAULT_MODEL;
+          const fallbackModel = normalizeModelSlug(options?.model) ?? DEFAULT_MODEL;
           const providerOpts =
             nextProviderOptions && nextProviderOptions.length > 0 ? nextProviderOptions : undefined;
 

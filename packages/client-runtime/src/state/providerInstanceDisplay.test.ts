@@ -8,14 +8,14 @@ import {
   shouldShowInstanceBadge,
 } from "./providerInstanceDisplay.ts";
 
-const codex = ProviderDriverKind.make("codex");
-const claude = ProviderDriverKind.make("claudeAgent");
+const codex = ProviderDriverKind.make("testDriver");
+const claude = ProviderDriverKind.make("otherDriver");
 
 describe("resolveProviderInstanceDisplayName", () => {
   it("keeps a snapshot name that differs from the brand label", () => {
     expect(
       resolveProviderInstanceDisplayName({
-        instanceId: ProviderInstanceId.make("codex"),
+        instanceId: ProviderInstanceId.make("testDriver"),
         driver: codex,
         displayName: "Work",
       }),
@@ -25,20 +25,20 @@ describe("resolveProviderInstanceDisplayName", () => {
   it("humanizes a custom instance id when the snapshot only carries the brand label", () => {
     expect(
       resolveProviderInstanceDisplayName({
-        instanceId: ProviderInstanceId.make("codex_personal"),
+        instanceId: ProviderInstanceId.make("testDriver_personal"),
         driver: codex,
-        displayName: "Codex",
+        displayName: "Test Driver",
       }),
-    ).toBe("Codex Personal");
+    ).toBe("Test Driver Personal");
   });
 
   it("uses the brand label for the default instance", () => {
     expect(
       resolveProviderInstanceDisplayName({
-        instanceId: ProviderInstanceId.make("codex"),
+        instanceId: ProviderInstanceId.make("testDriver"),
         driver: codex,
       }),
-    ).toBe("Codex");
+    ).toBe("Test Driver");
   });
 });
 

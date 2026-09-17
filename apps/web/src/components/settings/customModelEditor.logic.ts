@@ -53,7 +53,7 @@ const EFFORT_CHOICES = [
 export const DESCRIPTOR_PRESETS_BY_KIND: Partial<
   Record<ProviderDriverKind, ReadonlyArray<DescriptorPreset>>
 > = {
-  [ProviderDriverKind.make("codex")]: [
+  [ProviderDriverKind.make("testDriver")]: [
     { id: "reasoningEffort", label: "Reasoning", type: "select", choices: EFFORT_CHOICES },
     {
       id: "serviceTier",
@@ -65,7 +65,7 @@ export const DESCRIPTOR_PRESETS_BY_KIND: Partial<
       ],
     },
   ],
-  [ProviderDriverKind.make("claudeAgent")]: [
+  [ProviderDriverKind.make("otherDriver")]: [
     {
       id: "effort",
       label: "Reasoning",
@@ -86,10 +86,10 @@ export const DESCRIPTOR_PRESETS_BY_KIND: Partial<
     { id: "fastMode", label: "Fast Mode", type: "boolean" },
     { id: "thinking", label: "Thinking", type: "boolean" },
   ],
-  [ProviderDriverKind.make("grok")]: [
+  [ProviderDriverKind.make("fourthDriver")]: [
     { id: "reasoningEffort", label: "Reasoning", type: "select", choices: EFFORT_CHOICES },
   ],
-  [ProviderDriverKind.make("opencode")]: [
+  [ProviderDriverKind.make("thirdDriver")]: [
     { id: "variant", label: "Reasoning", type: "select", choices: EFFORT_CHOICES },
     {
       id: "agent",

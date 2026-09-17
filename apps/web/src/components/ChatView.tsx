@@ -5,7 +5,7 @@ import {
   collectProviderUsageLimits,
   hasProviderUsageLimits,
   isUsageLimitsCommand,
-} from "@t3tools/shared/usageLimits";
+} from "@t3tools/client-runtime/usageLimits";
 import { feedbackBannerItem } from "./chat/ComposerFeedback";
 import { usageLimitsBannerItem } from "./chat/ComposerUsageLimits";
 import { derivePendingRequests } from "@t3tools/client-runtime/pending-requests";
@@ -49,7 +49,7 @@ import { type EnvironmentConnectionPresentation } from "@t3tools/client-runtime/
 import { wasBootstrapThreadDeleted } from "@t3tools/client-runtime/errors";
 import { readPastedComposerContext } from "./composerInlineTokenPaste";
 import { isPasteAsTextShortcut } from "@t3tools/client-runtime/text-paste";
-import { type CodexArtifactTemplate } from "@t3tools/client-runtime/codex-artifact-templates";
+
 import { effectiveSnoozed, threadWokeAt } from "@t3tools/client-runtime/state/thread-settled";
 import {
   parseCodexFeedbackCommand,
@@ -461,7 +461,6 @@ import {
   revokeUserMessagePreviewUrls,
   shouldWriteThreadErrorToCurrentServerThread,
   startNewThreadForProject,
-  codexArtifactTemplatePromptToAppend,
   toolGroupConsumesUpwardNavigation,
   waitForStartedServerThread,
   shouldRefocusComposerOnWindowFocus,
@@ -3961,25 +3960,7 @@ export default function ChatView(props: ChatViewProps) {
       focusComposer();
     });
   }, [focusComposer]);
-  const useArtifactTemplate = useCallback(
-    (template: CodexArtifactTemplate) => {
-      const composer = composerRef.current;
-      if (!composer) return;
 
-      const currentDraft = composer.getSendContext().prompt;
-      const prompt = codexArtifactTemplatePromptToAppend(currentDraft, template);
-      if (prompt !== null && !composer.insertTextAtEnd(prompt, { ensureLeadingBoundary: true })) {
-        toastManager.add({
-          type: "error",
-          title: "Unable to add to chat",
-          description: "The composer is busy; try again once it is ready.",
-        });
-        return;
-      }
-      scheduleComposerFocus();
-    },
-    [composerRef, scheduleComposerFocus],
-  );
   const addTerminalContextToDraft = useCallback(
     (selection: TerminalContextSelection) => {
       composerRef.current?.addTerminalContext(selection);
@@ -9480,7 +9461,6 @@ export default function ChatView(props: ChatViewProps) {
                       onCiteAssistantText: citeAssistantText,
                       agentPanelModel,
                       onOpenAgents: addAgentsSurface,
-                      onUseArtifactTemplate: useArtifactTemplate,
                     }
                   : {})}
                 isWorking={!paintOnlyDisplayedTimeline && isWorking}

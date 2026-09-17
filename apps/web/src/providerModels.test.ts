@@ -7,7 +7,7 @@ import { describe, expect, it } from "vite-plus/test";
 
 import { getProviderModelCapabilities } from "./providerModels";
 
-const PROVIDER = ProviderDriverKind.make("claudeAgent");
+const PROVIDER = ProviderDriverKind.make("otherDriver");
 
 function capabilities(id: string): ModelCapabilities {
   return {
