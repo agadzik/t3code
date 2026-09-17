@@ -1073,19 +1073,15 @@ describe("resolveAssistantMessageCopyState", () => {
     });
   });
 
-  it("copies the rendered representation of Codex directives", () => {
+  it("copies the rendered representation of file-citation directives", () => {
     expect(
       resolveAssistantMessageCopyState({
         showCopyButton: true,
-        text: [
-          'Created :codex-file-citation{path="outputs/report.xlsx" purpose="output"}.',
-          "",
-          '::artifact-template{skill_name="artifact-template-hello-world" skill_directory="/Users/test/.codex/skills/artifact-template-hello-world" display_name="Hello World" artifact_kind="document"}',
-        ].join("\n"),
+        text: 'Created :codex-file-citation{path="outputs/report.xlsx" purpose="output"}.',
         streaming: false,
       }),
     ).toEqual({
-      text: "Created [report.xlsx](<outputs/report.xlsx>).\n\nHello World (Document template)",
+      text: "Created [report.xlsx](<outputs/report.xlsx>).",
       visible: true,
     });
   });

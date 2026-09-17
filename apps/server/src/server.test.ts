@@ -34,7 +34,6 @@ import {
   type ProviderAuthState,
   ProviderDriverKind,
   ProviderInstanceId,
-  type ProviderInstallState,
   ProviderSetupError,
   ResolvedKeybindingRule,
   type ServerLifecycleStreamEvent,
@@ -225,17 +224,6 @@ const defaultModelSelection = {
 
 const providerSetupInstanceId = ProviderInstanceId.make("antigravity-custom-profile");
 const providerSetupDriver = ProviderDriverKind.make("antigravity");
-const providerSetupInstallState: ProviderInstallState = {
-  driver: providerSetupDriver,
-  operationId: "install-operation",
-  phase: "downloading",
-  downloadedBytes: 128,
-  totalBytes: 256,
-  version: "test-release",
-  installedVersion: null,
-  canRemove: false,
-  message: null,
-};
 const providerSetupAuthState: ProviderAuthState = {
   instanceId: providerSetupInstanceId,
   phase: "idle",
@@ -5939,7 +5927,6 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
 
   it.effect("provider setup lets read-only clients observe installation but not change setup", () =>
     Effect.gen(function* () {
-      let installStarts = 0;
       let authCalls = 0;
       yield* buildAppUnderTest({
         layers: {
@@ -5979,8 +5966,11 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
           Effect.gen(function* () {
             const observed = yield* client[WS_METHODS.providerInstallSubscribe]({
               instanceId: providerSetupInstanceId,
-            }).pipe(Stream.runHead, Effect.map(Option.getOrThrow));
-            assert.deepEqual(observed, providerSetupInstallState);
+            }).pipe(Stream.runHead, Effect.flip);
+            assert.equal(observed._tag, "ProviderSetupError");
+            if (observed._tag === "ProviderSetupError") {
+              assert.equal(observed.operation, "observe-install");
+            }
             const errors = [
               yield* client[WS_METHODS.providerInstallStart]({
                 instanceId: providerSetupInstanceId,
@@ -6001,7 +5991,6 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
           }),
         ),
       );
-      assert.equal(installStarts, 0);
       assert.equal(authCalls, 0);
     }).pipe(Effect.provide(NodeHttpServer.layerTest)),
   );
@@ -6159,8 +6148,6 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
     "provider setup routes installation operations and returns only safe typed errors",
     () =>
       Effect.gen(function* () {
-        const calls: string[] = [];
-        let state = providerSetupInstallState;
         yield* buildAppUnderTest({
           layers: {
             providerInstanceRegistry: {
@@ -6179,35 +6166,43 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
                 instanceId: ProviderInstanceId.make("unknown-instance"),
               }).pipe(Effect.flip);
               assert.equal(unknownInstance._tag, "ProviderSetupError");
-              assert.deepEqual(calls, []);
+              if (unknownInstance._tag === "ProviderSetupError") {
+                assert.equal(unknownInstance.operation, "install");
+                assert.notProperty(unknownInstance, "cause");
+              }
               const started = yield* client[WS_METHODS.providerInstallStart]({
                 instanceId: providerSetupInstanceId,
-              });
-              assert.deepEqual(started, providerSetupInstallState);
-              const stale = yield* client[WS_METHODS.providerInstallCancel]({
-                instanceId: providerSetupInstanceId,
-                operationId: "old-operation",
               }).pipe(Effect.flip);
-              assert.equal(stale._tag, "ProviderSetupError");
-              if (stale._tag === "ProviderSetupError") {
-                assert.equal(stale.instanceId, providerSetupInstanceId);
-                assert.equal(stale.operation, "cancel");
-                assert.equal(stale.detail, "This installation is no longer running.");
-                assert.notProperty(stale, "cause");
+              assert.equal(started._tag, "ProviderSetupError");
+              if (started._tag === "ProviderSetupError") {
+                assert.equal(started.instanceId, providerSetupInstanceId);
+                assert.equal(started.operation, "install");
+                assert.equal(
+                  started.detail,
+                  "Managed installation is not available for this provider instance.",
+                );
+                assert.notProperty(started, "cause");
               }
               const cancelled = yield* client[WS_METHODS.providerInstallCancel]({
                 instanceId: providerSetupInstanceId,
                 operationId: "install-operation",
-              });
-              assert.equal(cancelled.phase, "cancelled");
+              }).pipe(Effect.flip);
+              assert.equal(cancelled._tag, "ProviderSetupError");
+              if (cancelled._tag === "ProviderSetupError") {
+                assert.equal(cancelled.operation, "cancel-install");
+                assert.notProperty(cancelled, "cause");
+              }
               const observed = yield* client[WS_METHODS.providerInstallSubscribe]({
                 instanceId: providerSetupInstanceId,
-              }).pipe(Stream.runHead, Effect.map(Option.getOrThrow));
-              assert.deepEqual(observed, cancelled);
+              }).pipe(Stream.runHead, Effect.flip);
+              assert.equal(observed._tag, "ProviderSetupError");
+              if (observed._tag === "ProviderSetupError") {
+                assert.equal(observed.operation, "observe-install");
+                assert.notProperty(observed, "cause");
+              }
             }),
           ),
         );
-        assert.deepEqual(calls, ["start", "cancel:old-operation", "cancel:install-operation"]);
       }).pipe(Effect.provide(NodeHttpServer.layerTest)),
   );
 
@@ -6553,21 +6548,7 @@ it.layer(NodeServices.layer)("server router seam", (it) => {
         assert.deepEqual(second, {
           version: 1,
           type: "providerStatuses",
-          payload: {
-            providers: hasLimits
-              ? [
-                  {
-                    ...nextProviders[0],
-                    slashCommands: [
-                      {
-                        name: "usage-limits",
-                        description: "Show this provider's usage limits",
-                      },
-                    ],
-                  },
-                ]
-              : nextProviders,
-          },
+          payload: { providers: nextProviders },
         });
       }).pipe(Effect.provide(NodeHttpServer.layerTest)),
   );

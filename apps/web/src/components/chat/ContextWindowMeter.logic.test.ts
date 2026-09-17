@@ -145,7 +145,7 @@ describe("shouldOfferResumeCompaction", () => {
   it("matches Claude's old-session age and context thresholds", () => {
     expect(
       shouldOfferResumeCompaction({
-        provider: "otherDriver",
+        provider: "claudeAgent",
         usedTokens: 100_000,
         updatedAt: "2026-08-24T10:50:00.000Z",
         now,
@@ -156,7 +156,7 @@ describe("shouldOfferResumeCompaction", () => {
   it("does not prompt for recent or smaller sessions", () => {
     expect(
       shouldOfferResumeCompaction({
-        provider: "otherDriver",
+        provider: "claudeAgent",
         usedTokens: 99_999,
         updatedAt: "2026-08-24T10:00:00.000Z",
         now,
@@ -164,7 +164,7 @@ describe("shouldOfferResumeCompaction", () => {
     ).toBe(false);
     expect(
       shouldOfferResumeCompaction({
-        provider: "otherDriver",
+        provider: "claudeAgent",
         usedTokens: 200_000,
         updatedAt: "2026-08-24T10:51:00.000Z",
         now,

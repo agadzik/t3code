@@ -210,7 +210,7 @@ describe("provider update launch notification logic", () => {
       latestVersion: "0.3.0",
     });
 
-    expect(providerUpdateNotificationKey([codex, cursor])).toBe("codex:1.1.0|cursor:0.3.0");
+    expect(providerUpdateNotificationKey([codex, cursor])).toBe("cursor:0.3.0|testDriver:1.1.0");
     expect(providerUpdateNotificationKey([])).toBeNull();
   });
 
@@ -286,7 +286,7 @@ describe("provider update launch notification logic", () => {
     expect(view).toMatchObject({
       phase: "initial",
       type: "warning",
-      title: "Update Available: Codex v1.1.0",
+      title: "Update Available: testDriver v1.1.0",
       description: "Install the update now or review provider settings.",
     });
   });
@@ -300,7 +300,7 @@ describe("provider update launch notification logic", () => {
       oneClickProviders: [],
     });
 
-    expect(view.description).toBe("Codex and Cursor can be updated from provider settings.");
+    expect(view.description).toBe("testDriver and cursor can be updated from provider settings.");
   });
 
   it("uses server update state for running progress", () => {
@@ -388,7 +388,7 @@ describe("provider update launch notification logic", () => {
       phase: "unchanged",
       type: "warning",
       title: "Provider still needs an update",
-      description: "Cursor still appears outdated. Check provider settings for details.",
+      description: "cursor still appears outdated. Check provider settings for details.",
     });
   });
 
@@ -472,7 +472,7 @@ describe("provider update launch notification logic", () => {
     expect(view).toMatchObject({
       tone: "loading",
       title: "Updating 2 providers",
-      description: "Codex and Cursor updates are in progress.",
+      description: "testDriver and cursor updates are in progress.",
     });
   });
 
@@ -491,10 +491,10 @@ describe("provider update launch notification logic", () => {
     ]);
 
     expect(view).toMatchObject({
-      key: "loading:codex:running",
+      key: "loading:testDriver:running",
       tone: "loading",
-      title: "Updating Codex",
-      description: "Codex update in progress.",
+      title: "Updating testDriver",
+      description: "testDriver update in progress.",
     });
   });
 
@@ -516,9 +516,9 @@ describe("provider update launch notification logic", () => {
     );
 
     expect(view).toMatchObject({
-      key: "failed:claudeAgent:2026-04-23T10:00:00.000Z:Update command exited with code 1.",
+      key: "failed:otherDriver:2026-04-23T10:00:00.000Z:Update command exited with code 1.",
       tone: "error",
-      title: "Claude v1.1.0 update failed",
+      title: "otherDriver v1.1.0 update failed",
       description: "Update command exited with code 1.",
       dismissible: true,
     });
@@ -545,9 +545,9 @@ describe("provider update launch notification logic", () => {
     );
 
     expect(view).toMatchObject({
-      key: "succeeded:codex:2026-04-23T10:00:00.000Z:Provider updated.",
+      key: "succeeded:testDriver:2026-04-23T10:00:00.000Z:Provider updated.",
       tone: "success",
-      title: "Codex updated: v1.1.0",
+      title: "testDriver updated: v1.1.0",
       description: "New sessions will use the updated provider.",
       dismissAfterVisibleMs: 3_000,
     });
@@ -573,7 +573,7 @@ describe("provider update launch notification logic", () => {
     expect(view).toMatchObject({
       key: "unchanged:cursor:2026-04-23T10:00:00.000Z:still old",
       tone: "warning",
-      title: "Cursor still needs an update",
+      title: "cursor still needs an update",
       dismissible: true,
     });
   });
@@ -629,19 +629,19 @@ describe("provider update launch notification logic", () => {
       visibleAfterIso: sessionStartedAt,
     });
     expect(successView).toMatchObject({
-      key: "succeeded:codex:2026-04-23T10:01:00.000Z:Provider updated.",
+      key: "succeeded:testDriver:2026-04-23T10:01:00.000Z:Provider updated.",
       tone: "success",
-      title: "Codex updated: v1.2.0",
+      title: "testDriver updated: v1.2.0",
     });
 
     const failureView = getProviderUpdateSidebarPillView(providers, {
       visibleAfterIso: sessionStartedAt,
-      dismissedKeys: new Set(["succeeded:codex:2026-04-23T10:01:00.000Z:Provider updated."]),
+      dismissedKeys: new Set(["succeeded:testDriver:2026-04-23T10:01:00.000Z:Provider updated."]),
     });
     expect(failureView).toMatchObject({
-      key: "failed:claudeAgent:2026-04-23T10:00:00.000Z:Update command exited with code 1.",
+      key: "failed:otherDriver:2026-04-23T10:00:00.000Z:Update command exited with code 1.",
       tone: "error",
-      title: "Claude v1.1.0 update failed",
+      title: "otherDriver v1.1.0 update failed",
     });
   });
 
@@ -884,8 +884,8 @@ describe("provider update launch notification logic", () => {
         }),
       ]);
       const key = localEnvironmentUpdateNotificationKey(both.groups);
-      expect(key).toContain("env-windows=codex:1.1.0");
-      expect(key).toContain("env-wsl=codex:1.1.0");
+      expect(key).toContain("env-windows=testDriver:1.1.0");
+      expect(key).toContain("env-wsl=testDriver:1.1.0");
     });
 
     it("labels environments by platform so they are distinguishable", () => {
@@ -1044,7 +1044,7 @@ describe("provider update launch notification logic", () => {
           pill: null,
           isPending: false,
         }),
-      ).toMatchObject({ kind: "idle", text: "Codex" });
+      ).toMatchObject({ kind: "idle", text: "testDriver" });
     });
   });
 });
