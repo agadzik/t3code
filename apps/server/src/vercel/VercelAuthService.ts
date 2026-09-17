@@ -92,6 +92,8 @@ export interface VercelAuthServiceShape {
   readonly setGatewayKey: (key: string) => Effect.Effect<VercelAuthStatus, VercelAuthError>;
   readonly getValidAccessToken: () => Effect.Effect<Option.Option<string>, VercelAuthError>;
   readonly getValidGatewayKey: () => Effect.Effect<Option.Option<string>, VercelAuthError>;
+  /** The manually pasted Vercel API token. Sandbox and VCR calls authenticate with it. */
+  readonly getValidApiToken: () => Effect.Effect<Option.Option<string>, VercelAuthError>;
   readonly handleAuthorize: () => Effect.Effect<
     HttpServerResponse.HttpServerResponse,
     never,
@@ -400,6 +402,10 @@ const make = Effect.gen(function* () {
     return yield* readUtf8Secret(VERCEL_GATEWAY_KEY_SECRET_NAME);
   });
 
+  const getValidApiToken = Effect.fn("VercelAuthService.getValidApiToken")(function* () {
+    return yield* readUtf8Secret(VERCEL_API_TOKEN_SECRET_NAME);
+  });
+
   const secretFlags = Effect.fn("VercelAuthService.secretFlags")(function* () {
     const gateway = yield* readUtf8Secret(VERCEL_GATEWAY_KEY_SECRET_NAME).pipe(
       Effect.orElseSucceed(() => Option.none<string>()),
@@ -704,6 +710,7 @@ const make = Effect.gen(function* () {
     setGatewayKey,
     getValidAccessToken,
     getValidGatewayKey,
+    getValidApiToken,
     handleAuthorize,
     handleCallback,
     handleSignout,

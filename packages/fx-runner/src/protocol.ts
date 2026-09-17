@@ -133,3 +133,7 @@ export const decodeRunnerListening = Schema.decodeUnknownSync(
 export const encodeRunnerListening = Schema.encodeSync(Schema.fromJsonString(RunnerListening));
 
 export const FX_RUNNER_TOKEN_ENV = "FX_RUNNER_TOKEN";
+/** Fixed listen port. Unset means an ephemeral port, which the local launcher reads from `RunnerListening`. */
+export const FX_RUNNER_PORT_ENV = "FX_RUNNER_PORT";
+/** Bind address. Unset means loopback; a sandbox sets `0.0.0.0` so the routed domain reaches it. */
+export const FX_RUNNER_HOST_ENV = "FX_RUNNER_HOST";

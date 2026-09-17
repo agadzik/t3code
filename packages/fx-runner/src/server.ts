@@ -19,6 +19,8 @@ export interface RunnerServerOptions {
   readonly token: string;
   readonly createAgent: (options: CreateFxAgentOptions) => Promise<FxAgent>;
   readonly host?: string;
+  /** 0 (the default) picks an ephemeral port. */
+  readonly port?: number;
 }
 
 export interface RunnerServer {
@@ -102,7 +104,7 @@ export async function startRunnerServer(options: RunnerServerOptions): Promise<R
 
   const port = await new Promise<number>((resolve, reject) => {
     httpServer.once("error", reject);
-    httpServer.listen(0, host, () => {
+    httpServer.listen(options.port ?? 0, host, () => {
       const address = httpServer.address();
       if (address === null || typeof address === "string") {
         reject(new Error("runner server did not bind a TCP port"));
