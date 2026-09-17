@@ -30,7 +30,7 @@ export type FxModelCatalog = (
   apiKey: string,
 ) => Effect.Effect<ReadonlyArray<string>, FxModelCatalogError>;
 
-export const FX_PRESENTATION = {
+const FX_PRESENTATION = {
   displayName: "fx",
   badgeLabel: "Experimental",
   showInteractionModeToggle: false,

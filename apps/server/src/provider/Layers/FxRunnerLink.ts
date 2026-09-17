@@ -189,63 +189,61 @@ export const awaitRunnerListening = (input: {
     );
   });
 
-export const makeLocalFxRunnerLauncher = Effect.fn("makeLocalFxRunnerLauncher")(
-  function* (options: { readonly environment: NodeJS.ProcessEnv }) {
-    const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-    const crypto = yield* Crypto.Crypto;
+const makeLocalFxRunnerLauncher = Effect.fn("makeLocalFxRunnerLauncher")(function* (options: {
+  readonly environment: NodeJS.ProcessEnv;
+}) {
+  const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+  const crypto = yield* Crypto.Crypto;
 
-    const launch: FxRunnerLauncher["launch"] = Effect.fn("FxRunnerLauncher.launch")(
-      function* (input) {
-        const processError = (detail: string, cause?: unknown) =>
-          new ProviderAdapterProcessError({
-            provider: PROVIDER,
-            threadId: input.threadId,
-            detail,
-            ...(cause !== undefined ? { cause } : {}),
-          });
-        const token = yield* crypto.randomUUIDv4.pipe(
-          Effect.mapError((cause) => processError("Failed to generate a runner token.", cause)),
-        );
-        const command = ChildProcess.make(process.execPath, [FX_RUNNER_ENTRYPOINT], {
-          cwd: input.cwd,
-          env: { ...options.environment, [FX_RUNNER_TOKEN_ENV]: token },
-          stdin: "ignore",
-          stdout: "pipe",
-          stderr: "pipe",
-          killSignal: "SIGTERM",
-          forceKillAfter: Duration.seconds(2),
-        });
-        const handle = yield* Effect.acquireRelease(
-          spawner
-            .spawn(command)
-            .pipe(
-              Effect.mapError((cause) => processError("Failed to spawn the fx runner.", cause)),
-            ),
-          (child) => child.kill().pipe(Effect.ignore),
-        );
-        yield* handle.stderr.pipe(Stream.runDrain, Effect.ignore, Effect.forkScoped);
-
-        const port = yield* awaitRunnerListening({
+  const launch: FxRunnerLauncher["launch"] = Effect.fn("FxRunnerLauncher.launch")(
+    function* (input) {
+      const processError = (detail: string, cause?: unknown) =>
+        new ProviderAdapterProcessError({
+          provider: PROVIDER,
           threadId: input.threadId,
-          lines: handle.stdout.pipe(Stream.decodeText(), Stream.splitLines),
-          exit: handle.exitCode.pipe(
-            Effect.map((exitCode) => `fx runner exited with code ${exitCode}.`),
-            Effect.orElseSucceed(() => "fx runner exited."),
-          ),
+          detail,
+          ...(cause !== undefined ? { cause } : {}),
         });
+      const token = yield* crypto.randomUUIDv4.pipe(
+        Effect.mapError((cause) => processError("Failed to generate a runner token.", cause)),
+      );
+      const command = ChildProcess.make(process.execPath, [FX_RUNNER_ENTRYPOINT], {
+        cwd: input.cwd,
+        env: { ...options.environment, [FX_RUNNER_TOKEN_ENV]: token },
+        stdin: "ignore",
+        stdout: "pipe",
+        stderr: "pipe",
+        killSignal: "SIGTERM",
+        forceKillAfter: Duration.seconds(2),
+      });
+      const handle = yield* Effect.acquireRelease(
+        spawner
+          .spawn(command)
+          .pipe(Effect.mapError((cause) => processError("Failed to spawn the fx runner.", cause))),
+        (child) => child.kill().pipe(Effect.ignore),
+      );
+      yield* handle.stderr.pipe(Stream.runDrain, Effect.ignore, Effect.forkScoped);
 
-        return yield* connectRunnerSocket({
-          url: `ws://127.0.0.1:${port}`,
-          token,
-          threadId: input.threadId,
-          placement: { kind: "local", rootDir: input.cwd },
-        });
-      },
-    );
+      const port = yield* awaitRunnerListening({
+        threadId: input.threadId,
+        lines: handle.stdout.pipe(Stream.decodeText(), Stream.splitLines),
+        exit: handle.exitCode.pipe(
+          Effect.map((exitCode) => `fx runner exited with code ${exitCode}.`),
+          Effect.orElseSucceed(() => "fx runner exited."),
+        ),
+      });
 
-    return { launch } satisfies FxRunnerLauncher;
-  },
-);
+      return yield* connectRunnerSocket({
+        url: `ws://127.0.0.1:${port}`,
+        token,
+        threadId: input.threadId,
+        placement: { kind: "local", rootDir: input.cwd },
+      });
+    },
+  );
+
+  return { launch } satisfies FxRunnerLauncher;
+});
 
 /**
  * Backend selection. The sandbox launcher is consulted per launch so a

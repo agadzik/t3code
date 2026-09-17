@@ -14,9 +14,9 @@ import * as Schedule from "effect/Schedule";
 import { forkParked } from "../serverActivation.ts";
 import { SandboxRunnerBackend } from "./SandboxRunnerBackend.ts";
 
-export const SANDBOX_REAPER_INTERVAL = Duration.minutes(10);
+const SANDBOX_REAPER_INTERVAL = Duration.minutes(10);
 
-export const makeSandboxReaperLive = (interval: Duration.Duration = SANDBOX_REAPER_INTERVAL) =>
+const makeSandboxReaperLive = (interval: Duration.Duration = SANDBOX_REAPER_INTERVAL) =>
   Layer.effectDiscard(
     Effect.gen(function* () {
       const backend = yield* SandboxRunnerBackend;

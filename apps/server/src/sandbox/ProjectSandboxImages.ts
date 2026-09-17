@@ -27,12 +27,12 @@ import {
 import { SandboxClient, type SandboxHandle, type SandboxSource } from "./SandboxClient.ts";
 import { runChecked, uploadWorkspace, WorkspaceBundler } from "./workspaceUpload.ts";
 
-export const SANDBOX_IMAGES_FILE = "sandbox-images.json";
+const SANDBOX_IMAGES_FILE = "sandbox-images.json";
 /** Image-build sandboxes are short-lived; the install must finish inside this. */
-export const IMAGE_BUILD_TIMEOUT_MS = 30 * 60 * 1000;
+const IMAGE_BUILD_TIMEOUT_MS = 30 * 60 * 1000;
 /** Measured from last use, so an active project's snapshot never expires under it. */
-export const PROJECT_SNAPSHOT_EXPIRATION_MS = 14 * 24 * 60 * 60 * 1000;
-export const IMAGE_SANDBOX_NAME_PREFIX = "t3-image-";
+const PROJECT_SNAPSHOT_EXPIRATION_MS = 14 * 24 * 60 * 60 * 1000;
+const IMAGE_SANDBOX_NAME_PREFIX = "t3-image-";
 
 const ProjectSandboxImageRecord = Schema.Struct({
   snapshotId: Schema.String,
@@ -48,7 +48,7 @@ const decodeStore = Schema.decodeUnknownEffect(Schema.fromJsonString(ProjectSand
 const encodeStore = Schema.encodeEffect(Schema.fromJsonString(ProjectSandboxImageStore));
 
 /** Package managers the image build knows how to run, detected from lockfiles in the clone. */
-export const PACKAGE_MANAGERS = ["pnpm", "bun", "yarn", "npm-ci", "npm", "none"] as const;
+const PACKAGE_MANAGERS = ["pnpm", "bun", "yarn", "npm-ci", "npm", "none"] as const;
 export type PackageManager = (typeof PACKAGE_MANAGERS)[number];
 
 /** Shell probe run inside the clone; prints one `PackageManager` token. */
@@ -61,7 +61,7 @@ export const DETECT_PACKAGE_MANAGER_SCRIPT = [
   "else echo none; fi",
 ].join(" ");
 
-export const INSTALL_COMMANDS: Readonly<
+const INSTALL_COMMANDS: Readonly<
   Record<
     Exclude<PackageManager, "none">,
     { readonly cmd: string; readonly args: ReadonlyArray<string> }
@@ -99,7 +99,7 @@ export class ProjectSandboxImages extends Context.Service<
 >()("t3/sandbox/ProjectSandboxImages") {}
 
 /** Clone the workspace into a fresh sandbox, install dependencies, snapshot it. */
-export const buildProjectSnapshot = Effect.fn("buildProjectSnapshot")(function* (input: {
+const buildProjectSnapshot = Effect.fn("buildProjectSnapshot")(function* (input: {
   readonly handle: SandboxHandle;
   readonly cwd: string;
   readonly bundle: Uint8Array;
@@ -123,7 +123,7 @@ export const buildProjectSnapshot = Effect.fn("buildProjectSnapshot")(function* 
   return yield* input.handle.snapshot({ expirationMs: PROJECT_SNAPSHOT_EXPIRATION_MS });
 });
 
-export const make = Effect.gen(function* () {
+const make = Effect.gen(function* () {
   const client = yield* SandboxClient;
   const config = yield* ServerConfig;
   const fs = yield* FileSystem.FileSystem;

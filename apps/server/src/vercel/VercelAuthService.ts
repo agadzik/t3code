@@ -202,7 +202,7 @@ type VercelHttpResult = {
   readonly body: unknown;
 };
 
-export const make = Effect.gen(function* () {
+const make = Effect.gen(function* () {
   const secretStore = yield* ServerSecretStore.ServerSecretStore;
   const pending = new Map<string, PendingAttempt>();
   const oauthLock = yield* Semaphore.make(1);
