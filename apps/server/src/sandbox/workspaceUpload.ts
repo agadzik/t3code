@@ -18,8 +18,8 @@ import type {
 } from "./SandboxClient.ts";
 
 /** Default working directory of a Vercel sandbox session. */
-export const SANDBOX_HOME = "/vercel/sandbox";
-export const SANDBOX_BUNDLE_PATH = `${SANDBOX_HOME}/.t3/workspace.bundle`;
+const SANDBOX_HOME = "/vercel/sandbox";
+const SANDBOX_BUNDLE_PATH = `${SANDBOX_HOME}/.t3/workspace.bundle`;
 
 /** Where the clone lands: the host folder name under the sandbox home, so paths read naturally in tool output. */
 export const sandboxWorkspaceDir = (hostCwd: string): string => {
@@ -88,7 +88,7 @@ const makeWorkspaceBundler = Effect.gen(function* () {
 
 export const workspaceBundlerLayer = Layer.effect(WorkspaceBundler, makeWorkspaceBundler);
 
-export const requireExitZero = (
+const requireExitZero = (
   command: SandboxRunCommandParams,
   result: SandboxCommandResult,
 ): Effect.Effect<SandboxCommandResult, SandboxCommandFailedError> =>
