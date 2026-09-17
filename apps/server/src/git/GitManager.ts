@@ -747,22 +747,11 @@ export const make = Effect.gen(function* () {
         case "repo_conventions": {
           const subjects = yield* readRecentCommitSubjects(cwd);
           const agentInstructions = yield* readRepositoryInstructions(cwd, "AGENTS.md");
-          const isClaudeWriter =
-            settings.modelSelection.instanceId === "claudeAgent" ||
-            (yield* providerRegistry.getProviders).some(
-              (provider) =>
-                provider.instanceId === settings.modelSelection.instanceId &&
-                provider.driver === "claudeAgent",
-            );
-          const claudeInstructions = isClaudeWriter
-            ? yield* readRepositoryInstructions(cwd, "CLAUDE.md")
-            : "";
           const examples = [
             ...(subjects.length > 0
               ? [["Recent commit subjects from this repository:", ...subjects].join("\n")]
               : []),
             ...(agentInstructions ? [`Local AGENTS.md:\n${agentInstructions}`] : []),
-            ...(claudeInstructions ? [`Local CLAUDE.md:\n${claudeInstructions}`] : []),
           ].join("\n\n");
           if (!examples) {
             return repositoryConventionsTextGenerationPolicy;

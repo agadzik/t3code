@@ -2911,6 +2911,7 @@ it.layer(GitManagerTestLayer)("GitManager", (it) => {
       yield* runGit(repoDir, ["config", "user.email", "test@example.com"]);
       yield* runGit(repoDir, ["config", "user.name", "Test User"]);
       const agentInstructions = "Use lowercase source control text.";
+      // A leftover CLAUDE.md from another tool is never read: no shipped provider reads it.
       const claudeInstructions = "Keep pull request bodies brief.";
       NodeFS.writeFileSync(NodePath.join(repoDir, "AGENTS.md"), agentInstructions);
       NodeFS.writeFileSync(NodePath.join(repoDir, "CLAUDE.md"), claudeInstructions);
@@ -2942,8 +2943,8 @@ it.layer(GitManagerTestLayer)("GitManager", (it) => {
 
       expect(generatedPolicy).toEqual({
         kind: "repo_conventions",
-        commitInstructions: `Follow the repository's established commit message style when examples are available.\n\nLocal AGENTS.md:\n${agentInstructions}\n\nLocal CLAUDE.md:\n${claudeInstructions}`,
-        changeRequestInstructions: `Follow the repository's established change request title and body style when examples are available.\n\nLocal AGENTS.md:\n${agentInstructions}\n\nLocal CLAUDE.md:\n${claudeInstructions}`,
+        commitInstructions: `Follow the repository's established commit message style when examples are available.\n\nLocal AGENTS.md:\n${agentInstructions}`,
+        changeRequestInstructions: `Follow the repository's established change request title and body style when examples are available.\n\nLocal AGENTS.md:\n${agentInstructions}`,
         inferRepositoryConventions: true,
       });
     }),
