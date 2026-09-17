@@ -93,6 +93,17 @@ export interface ProviderContinuationIdentity {
   readonly continuationKey: string;
 }
 
+/** Default continuation identity: one durable conversation per provider instance. */
+export function defaultProviderContinuationIdentity(input: {
+  readonly driverKind: ProviderDriverKind;
+  readonly instanceId: ProviderInstanceId;
+}): ProviderContinuationIdentity {
+  return {
+    driverKind: input.driverKind,
+    continuationKey: `${input.driverKind}:instance:${input.instanceId}`,
+  };
+}
+
 /**
  * Inputs the registry passes to a driver's `create` function.
  *
