@@ -40,10 +40,6 @@ export function setMcpProviderSession(config: McpProviderSessionConfig): void {
   sessionsByThread.set(config.threadId, config);
 }
 
-export function readMcpProviderSession(threadId: ThreadId): McpProviderSessionConfig | undefined {
-  return sessionsByThread.get(threadId);
-}
-
 export function clearMcpProviderSession(threadId: ThreadId): void {
   sessionsByThread.delete(threadId);
 }

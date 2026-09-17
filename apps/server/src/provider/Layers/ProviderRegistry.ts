@@ -80,7 +80,7 @@ const hasModelCapabilities = (model: ServerProvider["models"][number]): boolean 
 
 const MAX_WORKSPACE_SNAPSHOTS_PER_PROVIDER = 16;
 
-export function upsertProviderWorkspaceSnapshot(
+function upsertProviderWorkspaceSnapshot(
   provider: ServerProvider,
   cwd: string,
   scopedSnapshot: ServerProvider,
@@ -132,7 +132,7 @@ const mergeProviderModels = (
   ];
 };
 
-export const mergeProviderSnapshot = (
+const mergeProviderSnapshot = (
   previousProvider: ServerProvider | undefined,
   nextProvider: ServerProvider,
 ): ServerProvider => {
