@@ -165,7 +165,7 @@ describe("settings scope navigation", () => {
     expect(router.state.location.search).toEqual({
       machine: "provider-server",
       environmentId: "provider-server",
-      instanceId: "codex-work",
+      instanceId: "testDriver-work",
     });
     await router.navigate({ to: "/settings/general", hash: "" });
     expect(router.state.location.search).toEqual({ machine: "provider-server" });

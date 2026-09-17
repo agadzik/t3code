@@ -26,14 +26,11 @@
     "@effect/platform-node": "catalog:",
     "@effect/platform-node-shared": "catalog:",
     "@ff-labs/fff-node": "0.9.4",
-    "@t3tools/fx-runner": "workspace:*",
     "effect": "catalog:",
     "msgpackr-extract": "3.0.4",
     "node-pty": "^1.1.0",
     "stream-chain": "^4.2.5",
-    "stream-json": "3.6.0",
-    "yaml": "catalog:",
-    "yauzl": "^3.4.0"
+    "stream-json": "3.6.0"
   },
   "devDependencies": {
     "@effect/vitest": "catalog:",
@@ -43,7 +40,6 @@
     "@t3tools/tailscale": "workspace:*",
     "@t3tools/web": "workspace:*",
     "@types/node": "catalog:",
-    "@types/yauzl": "^3.4.0",
     "vite-plus": "catalog:"
   },
   "engines": {

@@ -28,7 +28,7 @@ function warningProvider(): ServerProvider {
 }
 
 describe("ProviderStatusBanner", () => {
-  it("waits for an Antigravity auth result before showing a sign-in warning", () => {
+  it("shows a warning while auth is still unknown", () => {
     const status: ServerProvider = {
       ...warningProvider(),
       instanceId: ProviderInstanceId.make("google_work"),
@@ -37,7 +37,7 @@ describe("ProviderStatusBanner", () => {
       message: "Antigravity is installed. Google account access is not checked yet.",
     };
 
-    expect(shouldShowProviderStatusBanner(status, null)).toBe(false);
+    expect(shouldShowProviderStatusBanner(status, null)).toBe(true);
     expect(
       shouldShowProviderStatusBanner(
         {
@@ -118,7 +118,7 @@ describe("getProviderStatusMessage", () => {
         auth: { status: "unauthenticated" },
         message: "",
       }),
-    ).toBe("Open provider setup to sign in with Google.");
+    ).toBe("Codex is unauthenticated.");
   });
 
   it("requires installation on the environment before sign-in", () => {
@@ -132,7 +132,7 @@ describe("getProviderStatusMessage", () => {
         auth: { status: "unauthenticated" },
         message: "",
       }),
-    ).toBe("Open provider setup to install Antigravity on this environment.");
+    ).toBe("Google work account is unauthenticated.");
   });
 
   it("keeps CLI sign-in advice for a provider without integrated setup", () => {
@@ -143,6 +143,6 @@ describe("getProviderStatusMessage", () => {
         auth: { status: "unauthenticated" },
         message: "",
       }),
-    ).toBe("Sign in via the CLI to authenticate again.");
+    ).toBe("Codex is unauthenticated.");
   });
 });

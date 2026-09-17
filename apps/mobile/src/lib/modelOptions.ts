@@ -91,7 +91,7 @@ export function isModelSelectionUnavailable(
 
 /**
  * Fall through to the server default when a provider is disabled, missing,
- * or signed out. Without config, keep stored selections.
+ * unavailable, or signed out. Without config, keep stored selections.
  */
 export function resolveSelectableModelSelection(
   config: T3ServerConfig | null | undefined,
@@ -106,6 +106,7 @@ export function resolveSelectableModelSelection(
   return provider &&
     provider.enabled &&
     provider.installed &&
+    provider.availability !== "unavailable" &&
     provider.auth.status !== "unauthenticated"
     ? selection
     : null;

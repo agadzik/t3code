@@ -465,7 +465,7 @@ it.layer(NodeServices.layer)("server settings", (it) => {
       const instanceId = ProviderInstanceId.make("testDriver");
       yield* fileSystem.writeFileString(
         serverConfig.settingsPath,
-        // @effect-diagnostics-next-line preferSchemaOverJson:off
+        // @effect-diagnostics-next-line preferSchemaOverJson:off - Test fixture writes a raw settings file.
         JSON.stringify({
           providerInstances: {
             testDriver: {
@@ -491,7 +491,7 @@ it.layer(NodeServices.layer)("server settings", (it) => {
       const serverSettings = yield* ServerSettingsModule.ServerSettingsService;
       yield* fileSystem.writeFileString(
         serverConfig.settingsPath,
-        // @effect-diagnostics-next-line preferSchemaOverJson:off
+        // @effect-diagnostics-next-line preferSchemaOverJson:off - Test fixture writes a raw settings file.
         JSON.stringify({
           textGenerationModelSelection: { instanceId: "testDriver", model: "gpt-5.6-luna" },
           providerInstances: {
