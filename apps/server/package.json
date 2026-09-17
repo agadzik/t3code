@@ -24,9 +24,9 @@
   },
   "dependencies": {
     "@effect/platform-node": "catalog:",
-    "@t3tools/fx-runner": "workspace:*",
     "@effect/platform-node-shared": "catalog:",
     "@ff-labs/fff-node": "0.9.4",
+    "@t3tools/fx-runner": "workspace:*",
     "effect": "catalog:",
     "msgpackr-extract": "3.0.4",
     "node-pty": "^1.1.0",
