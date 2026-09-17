@@ -142,6 +142,7 @@ describe("SandboxRunnerBackend", () => {
             .map((call) => `${call.op}:${call.detail}`),
           [
             "writeFiles:/vercel/sandbox/.t3/workspace.bundle",
+            "run:test -d /vercel/sandbox/My-App/.git",
             "run:git clone --quiet /vercel/sandbox/.t3/workspace.bundle /vercel/sandbox/My-App",
             "run:rm -f /vercel/sandbox/.t3/workspace.bundle",
             `run:sh -c ${ProjectSandboxImages.DETECT_PACKAGE_MANAGER_SCRIPT}`,
@@ -187,7 +188,9 @@ describe("SandboxRunnerBackend", () => {
             .map((call) => `${call.op}:${call.detail}`),
           [
             "writeFiles:/vercel/sandbox/.t3/workspace.bundle",
-            "run:git clone --quiet /vercel/sandbox/.t3/workspace.bundle /vercel/sandbox/My-App",
+            "run:test -d /vercel/sandbox/My-App/.git",
+            "run:git -C /vercel/sandbox/My-App fetch --quiet /vercel/sandbox/.t3/workspace.bundle HEAD",
+            "run:git -C /vercel/sandbox/My-App reset --hard --quiet FETCH_HEAD",
             "run:rm -f /vercel/sandbox/.t3/workspace.bundle",
             "runDetached:node /opt/t3code/fx-runner/bin.mjs",
             "domain:8080",

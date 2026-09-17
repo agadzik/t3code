@@ -106,7 +106,14 @@ const requireExitZero = (
 export const runChecked = (handle: SandboxHandle, command: SandboxRunCommandParams) =>
   handle.run(command).pipe(Effect.flatMap((result) => requireExitZero(command, result)));
 
-/** Upload a bundle and clone it. Returns the clone's absolute path inside the sandbox. */
+/**
+ * Upload a bundle and sync the workspace from it. Fresh sandboxes clone;
+ * sandboxes booted from a project snapshot already have the checkout (git
+ * refuses to clone into a nonempty directory), so they fetch the bundle and
+ * hard-reset to the host's current committed state. Untracked files the
+ * snapshot carried (installed dependencies) survive the reset.
+ * Returns the workspace's absolute path inside the sandbox.
+ */
 export const uploadWorkspace = Effect.fn("uploadWorkspace")(function* (input: {
   readonly handle: SandboxHandle;
   readonly hostCwd: string;
@@ -114,10 +121,25 @@ export const uploadWorkspace = Effect.fn("uploadWorkspace")(function* (input: {
 }) {
   const workspaceDir = sandboxWorkspaceDir(input.hostCwd);
   yield* input.handle.writeFiles([{ path: SANDBOX_BUNDLE_PATH, content: input.bundle }]);
-  yield* runChecked(input.handle, {
-    cmd: "git",
-    args: ["clone", "--quiet", SANDBOX_BUNDLE_PATH, workspaceDir],
+  const existing = yield* input.handle.run({
+    cmd: "test",
+    args: ["-d", `${workspaceDir}/.git`],
   });
+  if (existing.exitCode === 0) {
+    yield* runChecked(input.handle, {
+      cmd: "git",
+      args: ["-C", workspaceDir, "fetch", "--quiet", SANDBOX_BUNDLE_PATH, "HEAD"],
+    });
+    yield* runChecked(input.handle, {
+      cmd: "git",
+      args: ["-C", workspaceDir, "reset", "--hard", "--quiet", "FETCH_HEAD"],
+    });
+  } else {
+    yield* runChecked(input.handle, {
+      cmd: "git",
+      args: ["clone", "--quiet", SANDBOX_BUNDLE_PATH, workspaceDir],
+    });
+  }
   yield* runChecked(input.handle, { cmd: "rm", args: ["-f", SANDBOX_BUNDLE_PATH] });
   return workspaceDir;
 });

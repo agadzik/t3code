@@ -2,6 +2,11 @@
  * In-memory `SandboxClient` for tests. Records every call so tests assert the
  * exact create parameters, command sequence, and uploaded files; scripted
  * hooks decide what commands print and whether a create fails.
+ *
+ * Models just enough filesystem for workspace sync: a successful `git clone`
+ * marks its target directory, `test -d` answers from that mark, a snapshot
+ * captures the sandbox's directories, and a create from a snapshot restores
+ * them. A clone into an existing directory fails the way real git does.
  */
 import type { SandboxNetworkPolicy } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
@@ -75,6 +80,8 @@ export const makeFakeSandboxClient = (options: FakeSandboxOptions = {}): FakeSan
   const snapshots: { sandbox: string; snapshotId: string; expirationMs: number }[] = [];
   const policyUpdates: { sandbox: string; networkPolicy: SandboxNetworkPolicy }[] = [];
   const existing = new Map((options.existing ?? []).map((listing) => [listing.name, listing]));
+  const dirsBySandbox = new Map<string, Set<string>>();
+  const dirsBySnapshot = new Map<string, Set<string>>();
   let commandCounter = 0;
   let createAttempts = 0;
 
@@ -89,6 +96,25 @@ export const makeFakeSandboxClient = (options: FakeSandboxOptions = {}): FakeSan
     run: (params) =>
       Effect.sync(() => {
         record(name, "run", commandText(params));
+        const dirs = dirsBySandbox.get(name) ?? new Set<string>();
+        if (params.cmd === "test" && params.args?.[0] === "-d") {
+          const target = params.args[1] ?? "";
+          const normalized = target.endsWith("/.git") ? target.slice(0, -"/.git".length) : target;
+          return { exitCode: dirs.has(normalized) ? 0 : 1, stdout: "", stderr: "" };
+        }
+        if (params.cmd === "git" && params.args?.[0] === "clone") {
+          const target = params.args[params.args.length - 1] ?? "";
+          if (dirs.has(target)) {
+            return {
+              exitCode: 128,
+              stdout: "",
+              stderr: `fatal: destination path '${target}' already exists and is not an empty directory.`,
+            };
+          }
+          dirs.add(target);
+          dirsBySandbox.set(name, dirs);
+          return { exitCode: 0, stdout: "", stderr: "" };
+        }
         return options.runResult?.(params) ?? { exitCode: 0, stdout: "", stderr: "" };
       }),
     runDetached: (params) =>
@@ -120,6 +146,7 @@ export const makeFakeSandboxClient = (options: FakeSandboxOptions = {}): FakeSan
         const snapshotId = `snap-${name}-${snapshots.length + 1}`;
         snapshots.push({ sandbox: name, snapshotId, expirationMs: params.expirationMs });
         record(name, "snapshot", snapshotId);
+        dirsBySnapshot.set(snapshotId, new Set(dirsBySandbox.get(name) ?? []));
         stopped.add(name);
         return snapshotId;
       }),
@@ -146,6 +173,10 @@ export const makeFakeSandboxClient = (options: FakeSandboxOptions = {}): FakeSan
         createAttempts += 1;
         if (failure !== undefined) return Effect.fail(failure);
         creates.push(params);
+        if (params.source.kind === "snapshot") {
+          const carried = dirsBySnapshot.get(params.source.snapshotId);
+          if (carried) dirsBySandbox.set(params.name, new Set(carried));
+        }
         return Effect.succeed(handle(params.name));
       }),
     get: (name) =>
