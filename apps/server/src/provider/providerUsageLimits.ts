@@ -11,7 +11,7 @@ const WINDOW_KIND_ORDER: Record<ServerProviderUsageWindow["kind"], number> = {
   other: 3,
 };
 
-export function clampPercent(value: number): number {
+function clampPercent(value: number): number {
   return Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
 }
 
@@ -25,26 +25,11 @@ function sortWindows(
   );
 }
 
-export function makeUsageLimits(input: {
+function makeUsageLimits(input: {
   readonly checkedAt: string;
   readonly windows: Iterable<ServerProviderUsageWindow>;
 }): ServerProviderUsageLimits {
   return { checkedAt: input.checkedAt, windows: sortWindows(input.windows) };
-}
-
-export function makeUnavailableUsageLimits(input: {
-  readonly checkedAt: string;
-  readonly reason: "unsupported" | "probeFailed";
-  readonly message?: string;
-}): ServerProviderUsageLimits {
-  return {
-    checkedAt: input.checkedAt,
-    windows: [],
-    unavailable: {
-      reason: input.reason,
-      ...(input.message ? { message: input.message } : {}),
-    },
-  };
 }
 
 /**

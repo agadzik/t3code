@@ -335,7 +335,7 @@ const makeReconcile = <R>(input: {
  * created during `reconcile`. Closing that scope closes every live
  * instance.
  */
-export const makeProviderInstanceRegistry = <R>(input: {
+const makeProviderInstanceRegistry = <R>(input: {
   readonly drivers: ReadonlyArray<AnyProviderDriver<R>>;
   readonly configMap: ProviderInstanceConfigMap;
 }): Effect.Effect<

@@ -179,7 +179,7 @@ describe("filterSharedServerPatch", () => {
       };
       const instance = {
         driver: ProviderDriverKind.make(
-          availability === "different-driver" ? "claudeAgent" : "codex",
+          availability === "different-driver" ? "otherDriver" : "testDriver",
         ),
         enabled: availability !== "disabled",
         config: {},

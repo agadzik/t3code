@@ -139,7 +139,6 @@ function readConfigHomePath(config: unknown): string | undefined {
   return typeof homePath === "string" && homePath.trim().length > 0 ? homePath.trim() : undefined;
 }
 
-const decodeTranscriptRecord = Schema.decodeUnknownOption(Schema.fromJsonString(TranscriptRecord));
 const decodeTranscriptValue = Schema.decodeUnknownOption(TranscriptRecord);
 const selectTranscriptPath = createTranscriptJsonSelector(TranscriptRecord);
 const decodeCodexTurnMetadata = Schema.decodeUnknownOption(CodexTurnMetadata);
@@ -247,11 +246,6 @@ function selectMetadataTranscripts(transcripts: ReadonlyArray<TranscriptCandidat
   return selected;
 }
 
-function splitTranscriptRecords(contents: string, limit: number): string[] {
-  const records = contents.endsWith("\n") ? contents.slice(0, -1) : contents;
-  return records.split("\n", limit);
-}
-
 function extractText(
   content: string | ReadonlyArray<typeof TranscriptContentBlock.Type> | undefined,
 ): string {
@@ -283,18 +277,6 @@ function codexTurnId(metadata: unknown): string | null {
     return null;
   }
   return decoded.value.turn_id;
-}
-
-/** Keep visible user and assistant text while ignoring tools, reasoning, and malformed records. */
-export function parseAgentSessionTranscript(
-  input: AgentSessionTranscriptMetadata & {
-    readonly contents: string;
-  },
-  lines = splitTranscriptRecords(input.contents, MAX_IMPORT_RECORDS + 1),
-): AgentSessionThread | null {
-  if (lines.length > MAX_IMPORT_RECORDS) return null;
-  const records = lines.flatMap((line) => Option.toArray(decodeTranscriptRecord(line)));
-  return parseAgentSessionRecords(input, records);
 }
 
 function parseAgentSessionRecords(
