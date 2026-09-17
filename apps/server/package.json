@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@effect/platform-node": "catalog:",
+    "@t3tools/fx-runner": "workspace:*",
     "@effect/platform-node-shared": "catalog:",
     "@ff-labs/fff-node": "0.9.4",
     "effect": "catalog:",
