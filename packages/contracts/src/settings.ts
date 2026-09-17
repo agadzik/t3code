@@ -523,6 +523,31 @@ declare module "effect/Schema" {
   }
 }
 
+/** Instance environment variable the fx driver reads its AI Gateway key from. */
+export const FX_API_KEY_ENV = "FX_API_KEY";
+
+/**
+ * Config blob for an `fx` provider instance. The API key is deliberately not
+ * a field here: config blobs reach every client verbatim, while instance
+ * environment variables marked sensitive live in the secret store and are
+ * redacted on the way out. Users set `FX_API_KEY` on the instance instead.
+ */
+export const FxSettings = Schema.Struct({
+  enabled: Schema.Boolean.pipe(
+    Schema.withDecodingDefault(Effect.succeed(true)),
+    Schema.annotateKey({ providerSettingsForm: { hidden: true } }),
+  ),
+  model: TrimmedString.pipe(
+    Schema.withDecodingDefault(Effect.succeed("")),
+    Schema.annotateKey({
+      title: "Default model",
+      description: `AI Gateway model id used for new threads. Set the ${FX_API_KEY_ENV} environment variable on this instance (marked sensitive) to authenticate.`,
+      providerSettingsForm: { placeholder: "anthropic/claude-sonnet-4", clearWhenEmpty: "omit" },
+    }),
+  ),
+}).pipe(Schema.annotate({ providerSettingsFormSchema: { order: ["model"] } }));
+export type FxSettings = typeof FxSettings.Type;
+
 export const UsageLimitSourceConfig = Schema.Struct({
   kind: Schema.Literal("cliproxy"),
   label: Schema.optional(TrimmedNonEmptyString),
