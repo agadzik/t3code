@@ -330,6 +330,20 @@
       }
     },
     {
+      "repositoryUrl": "https://github.com/facebook/metro",
+      "generatedNotice": {
+        "licenseId": "MIT",
+        "copyrights": ["Copyright (c) Meta Platforms, Inc. and affiliates."]
+      }
+    },
+    {
+      "repositoryUrl": "https://github.com/react/metro",
+      "generatedNotice": {
+        "licenseId": "MIT",
+        "copyrights": ["Copyright (c) Meta Platforms, Inc. and affiliates."]
+      }
+    },
+    {
       "name": "@react-native-ai/apple",
       "sourceUrl": "https://github.com/callstackincubator/ai",
       "generatedNotice": {
@@ -443,6 +457,13 @@
       "generatedNotice": {
         "licenseId": "ISC",
         "copyrights": ["Copyright (c) 2014-2015, Felix Boehm <me@feedic.com>"]
+      }
+    },
+    {
+      "repositoryUrl": "https://github.com/dmtrKovalenko/fff",
+      "generatedNotice": {
+        "licenseId": "MIT",
+        "copyrights": ["Copyright (c) 2025 Dmitriy Kovalenko"]
       }
     },
     {
