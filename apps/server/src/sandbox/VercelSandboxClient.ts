@@ -106,7 +106,7 @@ const wrapCommand = (command: Command): SandboxCommand => ({
   kill: apiCall("command.kill", () => command.kill()),
 });
 
-export const wrapSandbox = (sandbox: Sandbox): SandboxHandle => ({
+const wrapSandbox = (sandbox: Sandbox): SandboxHandle => ({
   name: sandbox.name,
   run: (params) =>
     apiCall(`run ${params.cmd}`, async () => {
@@ -163,7 +163,7 @@ export const wrapSandbox = (sandbox: Sandbox): SandboxHandle => ({
     }),
 });
 
-export const make = Effect.gen(function* () {
+const make = Effect.gen(function* () {
   const settings = yield* ServerSettingsService;
   const vercelAuth = yield* VercelAuthService;
 

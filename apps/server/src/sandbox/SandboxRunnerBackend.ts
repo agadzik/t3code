@@ -46,13 +46,13 @@ import { uploadWorkspace, WorkspaceBundler } from "./workspaceUpload.ts";
 const PROVIDER = "fx";
 
 /** Vercel Pro caps a session at 24 hours; the session ends with the sandbox, no auto-resume. */
-export const THREAD_SANDBOX_TIMEOUT_MS = 24 * 60 * 60 * 1000;
-export const THREAD_SNAPSHOT_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000;
-export const THREAD_SANDBOX_NAME_PREFIX = "t3-";
-export const THREAD_SANDBOX_TAG = { key: "t3code", value: "thread" } as const;
+const THREAD_SANDBOX_TIMEOUT_MS = 24 * 60 * 60 * 1000;
+const THREAD_SNAPSHOT_EXPIRATION_MS = 7 * 24 * 60 * 60 * 1000;
+const THREAD_SANDBOX_NAME_PREFIX = "t3-";
+const THREAD_SANDBOX_TAG = { key: "t3code", value: "thread" } as const;
 
 /** Sandbox names are lowercase slugs; thread ids are already url-safe but not guaranteed lowercase. */
-export const sandboxNameForThread = (threadId: ThreadId): string =>
+const sandboxNameForThread = (threadId: ThreadId): string =>
   `${THREAD_SANDBOX_NAME_PREFIX}${threadId.toLowerCase().replace(/[^a-z0-9-]/g, "-")}`;
 
 const ORPHAN_STATUSES: ReadonlySet<SandboxListing["status"]> = new Set(["pending", "running"]);
@@ -88,7 +88,7 @@ export interface SandboxRunnerBackendOptions {
   readonly connect?: typeof connectRunnerSocket | undefined;
 }
 
-export const make = Effect.fn("SandboxRunnerBackend.make")(function* (
+const make = Effect.fn("SandboxRunnerBackend.make")(function* (
   options: SandboxRunnerBackendOptions = {},
 ) {
   const connect = options.connect ?? connectRunnerSocket;
