@@ -130,15 +130,12 @@ describe("searchSettings", () => {
     },
   );
 
-  it.each(["fx", "FX_API_KEY", "gateway key"])(
-    "finds fx provider settings by %s",
-    (query) => {
-      expect(searchSettings(query)[0]).toMatchObject({
-        id: "providers",
-        to: "/settings/providers",
-      });
-    },
-  );
+  it.each(["fx", "FX_API_KEY", "gateway key"])("finds fx provider settings by %s", (query) => {
+    expect(searchSettings(query)[0]).toMatchObject({
+      id: "providers",
+      to: "/settings/providers",
+    });
+  });
 
   it("returns no results for an empty query", () => {
     expect(searchSettings("   ", ITEMS)).toEqual([]);

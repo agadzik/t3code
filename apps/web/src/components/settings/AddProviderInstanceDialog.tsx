@@ -124,9 +124,7 @@ export function AddProviderInstanceDialog({
   const updateSettings = useUpdateEnvironmentSettings(environmentId);
 
   const [wizardStep, setWizardStep] = useState(0);
-  const [driver, setDriver] = useState<ProviderDriverKind | null>(
-    DRIVER_OPTIONS[0]?.value ?? null,
-  );
+  const [driver, setDriver] = useState<ProviderDriverKind | null>(DRIVER_OPTIONS[0]?.value ?? null);
   const [label, setLabel] = useState("");
   const [accentColor, setAccentColor] = useState<string>("");
   const [instanceIdOverride, setInstanceIdOverride] = useState<string | null>(null);
