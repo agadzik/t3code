@@ -120,6 +120,16 @@ describe("searchSettings", () => {
     },
   );
 
+  it.each(["vercel account", "sign in with vercel", "ai gateway"])(
+    "finds the environment Vercel account section by %s",
+    (query) => {
+      expect(searchSettings(query)[0]).toMatchObject({
+        id: "vercel-account",
+        to: "/settings/providers",
+      });
+    },
+  );
+
   it("returns no results for an empty query", () => {
     expect(searchSettings("   ", ITEMS)).toEqual([]);
   });

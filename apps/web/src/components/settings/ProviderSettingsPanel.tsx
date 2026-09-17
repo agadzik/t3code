@@ -81,6 +81,7 @@ import { AddProviderInstanceDialog } from "./AddProviderInstanceDialog";
 import { ExpandableText } from "./ExpandableText";
 import { ProviderInstanceCard } from "./ProviderInstanceCard";
 import { UsageProviderSettings } from "./UsageProviderSettings";
+import { VercelAccountSection } from "./VercelAccountSection";
 import { ProviderSetupSection } from "./ProviderSetupSection";
 import { getDriverOption } from "./providerDriverMeta";
 import { searchableSetting } from "./settingsSearch";
@@ -536,14 +537,18 @@ function AccessGatedProviderSettings({
       />
     );
   }
+  const readOnly = access.kind === "read-only";
   return (
-    <EnvironmentProviderSettings
-      environmentId={environment.environmentId}
-      environmentLabel={environment.label}
-      readOnly={access.kind === "read-only"}
-      deviceTabs={deviceTabs}
-      targetInstanceId={targetInstanceId}
-    />
+    <>
+      <VercelAccountSection environmentId={environment.environmentId} readOnly={readOnly} />
+      <EnvironmentProviderSettings
+        environmentId={environment.environmentId}
+        environmentLabel={environment.label}
+        readOnly={readOnly}
+        deviceTabs={deviceTabs}
+        targetInstanceId={targetInstanceId}
+      />
+    </>
   );
 }
 

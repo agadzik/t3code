@@ -134,6 +134,7 @@ import { PersistenceSqlError } from "./persistence/Errors.ts";
 import * as ProviderRegistry from "./provider/Services/ProviderRegistry.ts";
 import * as ProviderService from "./provider/Services/ProviderService.ts";
 import { ProviderAuthService } from "./provider/Services/ProviderAuthService.ts";
+import { VercelAuthService } from "./vercel/VercelAuthService.ts";
 import { ProviderInstanceRegistry } from "./provider/Services/ProviderInstanceRegistry.ts";
 import type { ProviderInstance } from "./provider/ProviderDriver.ts";
 import * as ProviderSessionDirectory from "./provider/Services/ProviderSessionDirectory.ts";
@@ -790,6 +791,38 @@ const buildAppUnderTest = (options?: {
           }),
           Layer.mock(ProviderAuthService)({
             ...options?.layers?.providerAuth,
+          }),
+          Layer.mock(VercelAuthService)({
+            start: () => Effect.succeed({ authorizationUrl: "/api/auth/vercel/authorize" }),
+            getStatus: () =>
+              Effect.succeed({
+                status: "disconnected",
+                hasGatewayKey: false,
+                hasApiToken: false,
+              }),
+            logout: () =>
+              Effect.succeed({
+                status: "disconnected",
+                hasGatewayKey: false,
+                hasApiToken: false,
+              }),
+            setApiToken: () =>
+              Effect.succeed({
+                status: "disconnected",
+                hasGatewayKey: false,
+                hasApiToken: true,
+              }),
+            setGatewayKey: () =>
+              Effect.succeed({
+                status: "disconnected",
+                hasGatewayKey: true,
+                hasApiToken: false,
+              }),
+            getValidAccessToken: () => Effect.succeed(Option.none()),
+            getValidGatewayKey: () => Effect.succeed(Option.none()),
+            handleAuthorize: () => Effect.die("Vercel authorize is not stubbed in this test"),
+            handleCallback: () => Effect.die("Vercel callback is not stubbed in this test"),
+            handleSignout: () => Effect.die("Vercel signout is not stubbed in this test"),
           }),
           Layer.mock(ProviderInstanceRegistry)({
             getInstance: () => Effect.succeed(undefined),

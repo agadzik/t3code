@@ -969,6 +969,35 @@ export function createServerEnvironmentAtoms<R, E>(
       label: "environment-data:provider:auth-logout",
       tag: WS_METHODS.providerAuthLogout,
     }),
+    vercelAuthStatus: createEnvironmentRpcQueryAtomFamily(runtime, {
+      label: "environment-data:vercel:auth-status",
+      tag: WS_METHODS.vercelAuthGetStatus,
+      idleTtlMs: 0,
+    }),
+    startVercelAuth: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:vercel:auth-start",
+      tag: WS_METHODS.vercelAuthStart,
+      concurrency: {
+        mode: "singleFlight",
+        key: ({ environmentId }) => environmentId,
+      },
+    }),
+    logoutVercelAuth: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:vercel:auth-logout",
+      tag: WS_METHODS.vercelAuthLogout,
+      concurrency: {
+        mode: "singleFlight",
+        key: ({ environmentId }) => environmentId,
+      },
+    }),
+    setVercelApiToken: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:vercel:auth-set-api-token",
+      tag: WS_METHODS.vercelAuthSetApiToken,
+    }),
+    setVercelGatewayKey: createEnvironmentRpcCommand(runtime, {
+      label: "environment-data:vercel:auth-set-gateway-key",
+      tag: WS_METHODS.vercelAuthSetGatewayKey,
+    }),
     providerInstallState: createEnvironmentRpcSubscriptionAtomFamily(runtime, {
       label: "environment-data:provider:install-state",
       tag: WS_METHODS.providerInstallSubscribe,

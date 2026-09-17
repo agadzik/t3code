@@ -267,6 +267,13 @@ import {
   SourceControlRepositoryLookupInput,
 } from "./sourceControl.ts";
 import { VcsError } from "./vcs.ts";
+import {
+  VercelAuthError,
+  VercelAuthSetApiTokenInput,
+  VercelAuthSetGatewayKeyInput,
+  VercelAuthStartResult,
+  VercelAuthStatus,
+} from "./vercelAuth.ts";
 
 export const WS_METHODS = {
   // Project registry methods
@@ -302,6 +309,13 @@ export const WS_METHODS = {
   providerInstallCancel: "provider.install.cancel",
   providerInstallSubscribe: "provider.install.subscribe",
   providerInstallRemove: "provider.install.remove",
+
+  // Vercel account auth
+  vercelAuthStart: "vercel.auth.start",
+  vercelAuthGetStatus: "vercel.auth.getStatus",
+  vercelAuthLogout: "vercel.auth.logout",
+  vercelAuthSetApiToken: "vercel.auth.setApiToken",
+  vercelAuthSetGatewayKey: "vercel.auth.setGatewayKey",
 
   // VCS methods
   vcsPull: "vcs.pull",
@@ -536,6 +550,38 @@ const WsProviderInstallSubscribeRpc = Rpc.make(WS_METHODS.providerInstallSubscri
   success: ProviderInstallState,
   error: ProviderSetupRpcError,
   stream: true,
+});
+
+const VercelAuthRpcError = Schema.Union([VercelAuthError, EnvironmentAuthorizationError]);
+
+const WsVercelAuthStartRpc = Rpc.make(WS_METHODS.vercelAuthStart, {
+  payload: Schema.Struct({}),
+  success: VercelAuthStartResult,
+  error: VercelAuthRpcError,
+});
+
+const WsVercelAuthGetStatusRpc = Rpc.make(WS_METHODS.vercelAuthGetStatus, {
+  payload: Schema.Struct({}),
+  success: VercelAuthStatus,
+  error: VercelAuthRpcError,
+});
+
+const WsVercelAuthLogoutRpc = Rpc.make(WS_METHODS.vercelAuthLogout, {
+  payload: Schema.Struct({}),
+  success: VercelAuthStatus,
+  error: VercelAuthRpcError,
+});
+
+const WsVercelAuthSetApiTokenRpc = Rpc.make(WS_METHODS.vercelAuthSetApiToken, {
+  payload: VercelAuthSetApiTokenInput,
+  success: VercelAuthStatus,
+  error: VercelAuthRpcError,
+});
+
+const WsVercelAuthSetGatewayKeyRpc = Rpc.make(WS_METHODS.vercelAuthSetGatewayKey, {
+  payload: VercelAuthSetGatewayKeyInput,
+  success: VercelAuthStatus,
+  error: VercelAuthRpcError,
 });
 
 const WsProviderInstallRemoveRpc = Rpc.make(WS_METHODS.providerInstallRemove, {
@@ -1353,6 +1399,11 @@ export const WsRpcGroup = RpcGroup.make(
   WsProviderInstallCancelRpc,
   WsProviderInstallSubscribeRpc,
   WsProviderInstallRemoveRpc,
+  WsVercelAuthStartRpc,
+  WsVercelAuthGetStatusRpc,
+  WsVercelAuthLogoutRpc,
+  WsVercelAuthSetApiTokenRpc,
+  WsVercelAuthSetGatewayKeyRpc,
   WsServerUpdateServerRpc,
   WsServerUpdateServerWithProgressRpc,
   WsServerCommitDesktopUpdateRpc,
