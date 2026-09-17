@@ -10,4 +10,20 @@ describe("ProviderSettingsForm helpers", () => {
     expect(option).toBeDefined();
     expect(deriveProviderSettingsFields(option!)).toEqual([]);
   });
+
+  it("derives the optional fx model field and hides enabled", () => {
+    const option = getDriverOption(ProviderDriverKind.make("fx"));
+    expect(option).toBeDefined();
+    expect(deriveProviderSettingsFields(option!)).toEqual([
+      {
+        key: "model",
+        control: "text",
+        label: "Default model",
+        description:
+          "AI Gateway model id used for new threads. Set the FX_API_KEY environment variable on this instance (marked sensitive) to authenticate.",
+        placeholder: "anthropic/claude-sonnet-4",
+        clearWhenEmpty: "omit",
+      },
+    ]);
+  });
 });

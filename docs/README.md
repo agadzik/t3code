@@ -20,6 +20,7 @@
 - [Running in the background](./user/background-service.md)
 - [Updating T3 Code](./user/updating.md)
 - [Providers](./user/providers.md)
+- [Sandboxes](./user/sandboxes.md)
 
 ---
 

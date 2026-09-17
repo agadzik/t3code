@@ -1,7 +1,10 @@
 import { ProviderDriverKind } from "@t3tools/contracts";
-import { type Icon } from "../Icons";
+import { GenericProviderIcon, type Icon } from "../Icons";
+import { FX_DRIVER_KIND } from "../settings/providerDriverMeta";
 
-export const PROVIDER_ICON_BY_PROVIDER: Partial<Record<ProviderDriverKind, Icon>> = {};
+export const PROVIDER_ICON_BY_PROVIDER: Partial<Record<ProviderDriverKind, Icon>> = {
+  [FX_DRIVER_KIND]: GenericProviderIcon,
+};
 
 export type ModelEsque = {
   slug: string;

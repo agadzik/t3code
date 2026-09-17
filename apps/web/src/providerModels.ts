@@ -9,16 +9,14 @@ import {
 } from "@t3tools/contracts";
 import { createModelCapabilities, resolveSelectableModel } from "@t3tools/shared/model";
 
+import { getDriverOption } from "./components/settings/providerDriverMeta";
+
 const EMPTY_CAPABILITIES: ModelCapabilities = createModelCapabilities({
   optionDescriptors: [],
 });
 
 export function formatProviderDriverKindLabel(provider: ProviderDriverKind): string {
-  return provider
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/[_-]+/g, " ")
-    .trim()
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  return getDriverOption(provider)?.label ?? provider;
 }
 
 export function getProviderModels(
