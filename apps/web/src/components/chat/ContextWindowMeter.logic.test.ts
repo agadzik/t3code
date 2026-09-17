@@ -4,9 +4,7 @@ import { deriveProviderInstanceEntries } from "../../providerInstances";
 import {
   formatContextWindowCompactionMessage,
   hasAvailableCompactionProvider,
-  hasDismissedResumeCompaction,
   resolveContextWindowModelDisplayName,
-  shouldOfferResumeCompaction,
   shouldReserveContextWindowMeter,
 } from "./ContextWindowMeter.logic";
 
@@ -136,105 +134,6 @@ describe("formatContextWindowCompactionMessage", () => {
     expect(formatContextWindowCompactionMessage("Claude Sonnet 5", 300_000)).toBe(
       "Compacts automatically at 300,000 tokens.",
     );
-  });
-});
-
-describe("shouldOfferResumeCompaction", () => {
-  const now = "2026-08-24T12:00:00.000Z";
-
-  it("matches Claude's old-session age and context thresholds", () => {
-    expect(
-      shouldOfferResumeCompaction({
-        provider: "otherDriver",
-        usedTokens: 100_000,
-        updatedAt: "2026-08-24T10:50:00.000Z",
-        now,
-      }),
-    ).toBe(true);
-  });
-
-  it("does not prompt for recent or smaller sessions", () => {
-    expect(
-      shouldOfferResumeCompaction({
-        provider: "otherDriver",
-        usedTokens: 99_999,
-        updatedAt: "2026-08-24T10:00:00.000Z",
-        now,
-      }),
-    ).toBe(false);
-    expect(
-      shouldOfferResumeCompaction({
-        provider: "otherDriver",
-        usedTokens: 200_000,
-        updatedAt: "2026-08-24T10:51:00.000Z",
-        now,
-      }),
-    ).toBe(false);
-  });
-
-  it("does not show Claude's resume prompt for another provider", () => {
-    expect(
-      shouldOfferResumeCompaction({
-        provider: "testDriver",
-        usedTokens: 300_000,
-        updatedAt: "2026-08-24T09:00:00.000Z",
-        now,
-      }),
-    ).toBe(false);
-  });
-});
-
-describe("hasDismissedResumeCompaction", () => {
-  it("recognizes the native resume dialog's permanent dismissal", () => {
-    expect(
-      hasDismissedResumeCompaction([
-        {
-          kind: "user-input.resolved",
-          payload: {
-            answers: {
-              "This session is 2h 0m old and uses 250,000 tokens. Compact it before continuing?":
-                "Don't ask again",
-            },
-          },
-        },
-      ]),
-    ).toBe(true);
-  });
-
-  it("ignores the same answer on an unrelated question", () => {
-    expect(
-      hasDismissedResumeCompaction([
-        {
-          kind: "user-input.resolved",
-          payload: { answers: { "Show this setup reminder?": "Don't ask again" } },
-        },
-      ]),
-    ).toBe(false);
-  });
-
-  it("ignores unrelated questions that end with Claude's compaction prompt", () => {
-    expect(
-      hasDismissedResumeCompaction([
-        {
-          kind: "user-input.resolved",
-          payload: {
-            answers: {
-              "The build cache is large. Compact it before continuing?": "Don't ask again",
-            },
-          },
-        },
-      ]),
-    ).toBe(false);
-  });
-
-  it("ignores pending questions and malformed resolved payloads", () => {
-    expect(
-      hasDismissedResumeCompaction([
-        { kind: "user-input.requested", payload: { answers: { question: "Don't ask again" } } },
-        { kind: "user-input.resolved", payload: null },
-        { kind: "user-input.resolved", payload: { answers: ["Don't ask again"] } },
-      ]),
-    ).toBe(false);
   });
 });
 

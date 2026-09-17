@@ -873,7 +873,7 @@ export function EnvironmentProviderSettings({
             : undefined
         }
         headerAction={
-          mode === "editor" && row.isDefault && row.isDirty ? (
+          mode === "editor" && row.isDefault ? (
             <SettingResetButton
               label={`${resetLabel} provider settings`}
               onClick={() => resetDefaultInstance(row.driver)}

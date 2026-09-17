@@ -332,7 +332,7 @@ interface TerminalLaunchLocation {
   readonly runtimeEnv?: Record<string, string>;
 }
 
-export function TerminalViewport({
+function TerminalViewport({
   advancedTypography,
   threadRef,
   threadId,

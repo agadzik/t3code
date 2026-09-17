@@ -172,7 +172,12 @@ describe("EnvironmentProviderSettings routing", () => {
   beforeEach(() => {
     hooks.reset();
     atoms.providers = null;
-    settingsState.value = DEFAULT_UNIFIED_SETTINGS;
+    settingsState.value = {
+      ...DEFAULT_UNIFIED_SETTINGS,
+      providerInstances: {
+        [codexId]: { driver: ProviderDriverKind.make("testDriver"), enabled: true },
+      },
+    };
     settingsState.readEnvironmentIds = [];
     settingsState.updateEnvironmentIds = [];
     settingsState.updateSettings.mockReset();
@@ -384,7 +389,7 @@ describe("EnvironmentProviderSettings routing", () => {
     const resetPatch = settingsState.updateSettings.mock.lastCall?.[0] as
       | Record<string, unknown>
       | undefined;
-    expect(Object.keys(resetPatch ?? {}).sort()).toEqual(["providerInstances", "providers"]);
+    expect(Object.keys(resetPatch ?? {}).sort()).toEqual(["providerInstances"]);
     expect(resetPatch).not.toHaveProperty("favorites");
     expect(resetPatch).not.toHaveProperty("providerModelPreferences");
   });
