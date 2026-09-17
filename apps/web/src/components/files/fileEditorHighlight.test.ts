@@ -198,7 +198,9 @@ async function cleanUpFixture() {
 
 afterEach(cleanUpFixture);
 
-describe("editable file highlighting", () => {
+// The WASM highlighter over a 7k-line fixture is CPU-bound; on small shared CI
+// runners the default per-test timeout starves it.
+describe("editable file highlighting", { timeout: 60_000 }, () => {
   it("cleans up an already terminated worker pool", async () => {
     (await nextResponse()).deliver();
     expect(pool.getStats().totalWorkers).toBe(1);

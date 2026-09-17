@@ -1,35 +1,23 @@
 # Providers
 
-A provider is the agent runtime T3 Code talks to. A provider instance is one
-configured copy of that runtime, with its own settings and lifecycle. You can
-run more than one instance of the same driver.
+This fork talks to one agent runtime: fx. An fx instance is one configured copy of that runtime, with its own model and gateway key. You can add more than one instance.
 
-Zero instances is a valid state. The composer cannot send until at least one
-instance is ready.
+The composer cannot send until at least one instance is ready.
 
-## Add an instance
+## Add an fx instance
 
-Open Settings, then Providers. Choose the environment that should host the
-instance, then add an instance. The form asks for a driver, an optional label,
-and optional driver settings.
+1. Open Settings, then Providers.
+2. Sign in with Vercel in the Vercel account section.
+3. Choose the environment that should host the instance, then add an instance.
+4. Select **fx**. Give it an optional label. Instance ids are slugs such as `fx_work`. You can override the id before saving.
+5. Optionally set a default model. The gateway key is not a form field.
 
-Instance ids are slugs. T3 Code builds them from the driver and label, for
-example `fx_work`. You can override the id before saving.
+After you save, open the instance. Add `FX_API_KEY` as a sensitive environment variable if you did not sign in with Vercel.
 
-## Use an instance
+## Choose a model
 
-Pick the instance and model in the composer. Threads remember the instance they
-started with. If that instance is later disabled or removed, T3 Code falls back
-to another ready instance or shows that no provider is available.
+Pick the instance and model in the composer. Threads remember the instance they started with. If that instance is later disabled or removed, T3 Code falls back to another ready instance or shows that no provider is available.
 
-## Set up and sign in
+## Gateway key
 
-If a driver supports install or sign-in, the instance editor shows a setup
-section. Use it to install the runtime or authenticate. Those actions run on
-the selected environment through `provider.auth.*` RPCs.
-
-## Updates
-
-When an instance reports a newer version and T3 Code can prove which installer
-owns the binary, Settings offers an update. Otherwise update the runtime
-yourself, then refresh provider status.
+Sign in with Vercel in the Vercel account section to provision the gateway key. You can also set `FX_API_KEY` on the instance environment and mark it sensitive. The key never lives in the instance config blob.

@@ -20,7 +20,7 @@ import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import { RadioGroup } from "../ui/radio-group";
 import { toastManager } from "../ui/toast";
-import { getDriverOption } from "./providerDriverMeta";
+import { DRIVER_OPTIONS, FX_DRIVER_KIND, getDriverOption } from "./providerDriverMeta";
 import { ProviderSettingsForm, deriveProviderSettingsFields } from "./ProviderSettingsForm";
 import { WizardPanel, WizardPopup, WizardHeader, WizardFooter } from "../ui/wizard";
 import {
@@ -124,7 +124,9 @@ export function AddProviderInstanceDialog({
   const updateSettings = useUpdateEnvironmentSettings(environmentId);
 
   const [wizardStep, setWizardStep] = useState(0);
-  const [driver, setDriver] = useState<ProviderDriverKind | null>(null);
+  const [driver, setDriver] = useState<ProviderDriverKind | null>(
+    DRIVER_OPTIONS[0]?.value ?? null,
+  );
   const [label, setLabel] = useState("");
   const [accentColor, setAccentColor] = useState<string>("");
   const [instanceIdOverride, setInstanceIdOverride] = useState<string | null>(null);
@@ -252,6 +254,28 @@ export function AddProviderInstanceDialog({
               aria-labelledby="add-instance-driver-label"
               className="grid grid-cols-1 gap-2 sm:grid-cols-2"
             >
+              {DRIVER_OPTIONS.map((option) => {
+                const IconComponent = option.icon;
+                const isSelected = driver === option.value;
+                return (
+                  <RadioPrimitive.Root
+                    key={option.value}
+                    value={option.value}
+                    className={cn(
+                      "relative flex cursor-pointer items-center gap-3 rounded-lg border px-3 py-3 text-left outline-none transition-[background-color,border-color,box-shadow]",
+                      "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background",
+                      isSelected
+                        ? "border-primary bg-background shadow-sm ring-2 ring-primary/35 dark:border-transparent dark:bg-primary/10 dark:shadow-none dark:ring-1 dark:ring-primary/30"
+                        : "border-border bg-background hover:border-foreground/20 hover:bg-muted/50 dark:border-transparent dark:bg-white/[0.035] dark:hover:bg-accent",
+                    )}
+                  >
+                    <IconComponent className="size-4 shrink-0 text-muted-foreground" aria-hidden />
+                    <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+                      {option.label}
+                    </span>
+                  </RadioPrimitive.Root>
+                );
+              })}
               {COMING_SOON_DRIVER_OPTIONS.map((option) => {
                 const IconComponent = option.icon;
                 return (
@@ -356,8 +380,14 @@ export function AddProviderInstanceDialog({
             </span>
           </div>
 
-          {driverSettingsFields.length > 0 ? (
-            <div className={cn("grid gap-4", wizardStep !== 2 && "hidden")}>
+          <div className={cn("grid gap-4", wizardStep !== 2 && "hidden")}>
+            {driver === FX_DRIVER_KIND ? (
+              <p className="text-sm text-muted-foreground">
+                Sign in with Vercel in the Vercel account section above to provision the gateway
+                key, or set FX_API_KEY in the instance environment.
+              </p>
+            ) : null}
+            {driverSettingsFields.length > 0 ? (
               <ProviderSettingsForm
                 definition={driverOption!}
                 value={configDraft}
@@ -365,14 +395,12 @@ export function AddProviderInstanceDialog({
                 variant="dialog"
                 onChange={setConfigDraft}
               />
-            </div>
-          ) : wizardStep === 2 ? (
-            <div className="grid gap-2">
+            ) : wizardStep === 2 ? (
               <p className="text-sm text-muted-foreground">
                 This driver has no required configuration. You can add the instance now.
               </p>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </WizardPanel>
 
         <WizardFooter>
@@ -389,7 +417,12 @@ export function AddProviderInstanceDialog({
             {wizardStep === 0 ? "Cancel" : "Back"}
           </Button>
           {wizardStep < ADD_PROVIDER_WIZARD_STEPS.length - 1 ? (
-            <Button onClick={() => navigateToStep(wizardStep + 1)}>Next</Button>
+            <Button
+              onClick={() => navigateToStep(wizardStep + 1)}
+              disabled={wizardStep === 0 && driver === null}
+            >
+              Next
+            </Button>
           ) : (
             <Button onClick={handleSave}>Add instance</Button>
           )}

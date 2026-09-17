@@ -93,6 +93,7 @@ export interface ProviderContinuationIdentity {
   readonly continuationKey: string;
 }
 
+/** Default continuation identity: one durable conversation per provider instance. */
 export function defaultProviderContinuationIdentity(input: {
   readonly driverKind: ProviderDriverKind;
   readonly instanceId: ProviderInstanceId;

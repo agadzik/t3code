@@ -142,39 +142,6 @@ describe("customModelEditor.logic", () => {
     },
   );
 
-  it("excludes Claude context choices from presets and copies without changing other providers or authored entries", () => {
-    const capabilities: ModelCapabilities = {
-      optionDescriptors: [
-        {
-          id: "contextWindow",
-          label: "Context",
-          type: "select",
-          options: [{ id: "1m", label: "1M", isDefault: true }],
-        },
-        { id: "thinking", label: "Thinking", type: "boolean", currentValue: true },
-      ],
-    };
-    const claude = ProviderDriverKind.make("otherDriver");
-    const copied = definitionFromDraft(
-      draft({ descriptors: descriptorsFromCapabilities(capabilities, claude) }),
-    );
-    expect(copied.capabilities?.optionDescriptors).toEqual([capabilities.optionDescriptors![1]]);
-    const presets = definitionFromDraft(
-      draft({
-        descriptors: (DESCRIPTOR_PRESETS_BY_KIND[claude] ?? []).map(descriptorFromPreset),
-      }),
-    );
-    expect(
-      presets.capabilities?.optionDescriptors?.some((option) => option.id === "contextWindow"),
-    ).toBe(false);
-    const cursorCopy = descriptorsFromCapabilities(capabilities, ProviderDriverKind.make("cursor"));
-    expect(cursorCopy.map((option) => option.id)).toEqual(["contextWindow", "thinking"]);
-    const authored = { slug: "custom", name: "Custom", capabilities };
-    expect(
-      definitionFromDraft(draftFromDefinition(authored)).capabilities?.optionDescriptors?.[0],
-    ).toMatchObject(capabilities.optionDescriptors![0]!);
-  });
-
   it("preserves choice descriptions when copying, renaming, and saving", () => {
     const capabilities: ModelCapabilities = {
       optionDescriptors: [

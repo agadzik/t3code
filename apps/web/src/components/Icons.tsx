@@ -721,3 +721,20 @@ export const ForgejoIcon: Icon = (props) => (
     </g>
   </svg>
 );
+
+/** Brand-free glyph for drivers without a product mark. */
+export const GenericProviderIcon: Icon = (props) => (
+  <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
+    <rect
+      x="3.5"
+      y="5.5"
+      width="17"
+      height="13"
+      rx="3"
+      stroke="currentColor"
+      strokeWidth="1.5"
+    />
+    <circle cx="9" cy="12" r="1.4" fill="currentColor" />
+    <circle cx="15" cy="12" r="1.4" fill="currentColor" />
+  </svg>
+);

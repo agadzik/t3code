@@ -511,14 +511,16 @@ export const SETTINGS_SEARCH_ITEMS = [
     title: "Providers",
     to: "/settings/providers",
     searchTerms: [
-      "agents cli instances authentication api key models configuration display name accent color environment variables sign in sign out install subscription binary path config directory endpoint arguments custom favorite hidden auto compact",
+      "agents cli instances authentication api key models configuration display name accent color environment variables sign in sign out install subscription binary path config directory endpoint arguments custom favorite hidden auto compact fx FX_API_KEY gateway key",
     ],
   },
   {
     id: "vercel-account",
     title: "Vercel account",
     to: "/settings/providers",
-    searchTerms: ["sign in with vercel oauth ai gateway key api token environment account logout"],
+    searchTerms: [
+      "sign in with vercel oauth ai gateway key api token environment account logout FX_API_KEY",
+    ],
     providerSettingsOnly: true,
   },
   {
