@@ -71,5 +71,10 @@
       // These workspace packages are private to this monorepo.
       "includeEntryExports": true,
     },
+    "packages/fx-runner": {
+      // The server spawns this entrypoint by file path rather than importing it.
+      "entry": ["src/bin.ts!"],
+      "includeEntryExports": true,
+    },
   },
 }
