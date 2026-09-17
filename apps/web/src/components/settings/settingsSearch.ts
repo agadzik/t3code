@@ -515,6 +515,13 @@ export const SETTINGS_SEARCH_ITEMS = [
     ],
   },
   {
+    id: "vercel-account",
+    title: "Vercel account",
+    to: "/settings/providers",
+    searchTerms: ["sign in with vercel oauth ai gateway key api token environment account logout"],
+    providerSettingsOnly: true,
+  },
+  {
     id: "usage-providers",
     title: "Usage providers",
     to: "/settings/providers",
