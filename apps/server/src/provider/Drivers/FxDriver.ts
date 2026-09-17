@@ -16,10 +16,12 @@ import {
 import { listFxModels } from "@t3tools/fx-runner/models";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
+import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { ChildProcessSpawner } from "effect/unstable/process";
 
 import type * as BackgroundPolicy from "../../background/BackgroundPolicy.ts";
+import { SandboxRunnerBackend } from "../../sandbox/SandboxRunnerBackend.ts";
 import { ServerSettingsService } from "../../serverSettings.ts";
 import type * as TextGeneration from "../../textGeneration/TextGeneration.ts";
 import { ProviderDriverError } from "../Errors.ts";
@@ -127,7 +129,19 @@ export const FxDriver: ProviderDriver<FxSettings, FxDriverEnv> = {
         model: nonEmpty(config.model),
       };
 
-      const launcher = yield* makeFxRunnerLauncher({ environment: processEnv });
+      // Optional so tests and forks without Vercel wiring keep the local launcher.
+      const sandboxBackend = yield* Effect.serviceOption(SandboxRunnerBackend);
+      const launcher = yield* makeFxRunnerLauncher({
+        environment: processEnv,
+        ...(Option.isSome(sandboxBackend)
+          ? {
+              sandbox: {
+                launcher: sandboxBackend.value.launcher,
+                enabled: sandboxBackend.value.isEnabled,
+              },
+            }
+          : {}),
+      });
       const adapter = yield* makeFxAdapter(
         { instanceId, apiKey: probeConfig.apiKey, model: probeConfig.model },
         {

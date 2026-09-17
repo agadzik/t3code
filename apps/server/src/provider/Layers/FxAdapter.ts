@@ -439,13 +439,14 @@ export function makeFxAdapter(config: FxAdapterConfig, options: FxAdapterOptions
           const sessionScope = yield* Scope.make("sequential");
           return yield* Effect.gen(function* () {
             const link = yield* options.launcher
-              .launch({ threadId: input.threadId, cwd })
+              .launch({ threadId: input.threadId, cwd, projectId: input.projectId })
               .pipe(Effect.provideService(Scope.Scope, sessionScope));
+            const placement = link.placement;
             yield* link.send({
               type: "init",
-              apiKey,
+              apiKey: placement.kind === "sandbox" ? placement.apiKey : apiKey,
               ...(model !== undefined ? { model } : {}),
-              rootDir: cwd,
+              rootDir: placement.rootDir,
               ...(resumeCursor !== undefined
                 ? { checkpointBase64: resumeCursor.checkpointBase64 }
                 : {}),
@@ -465,6 +466,15 @@ export function makeFxAdapter(config: FxAdapterConfig, options: FxAdapterOptions
                 ...(model !== undefined ? { model } : {}),
                 threadId: input.threadId,
                 ...(resumeCursor !== undefined ? { resumeCursor } : {}),
+                ...(placement.kind === "sandbox"
+                  ? {
+                      execution: {
+                        kind: "sandbox",
+                        sandboxName: placement.sandboxName,
+                        rootDir: placement.rootDir,
+                      },
+                    }
+                  : {}),
                 createdAt,
                 updatedAt: createdAt,
               },
@@ -524,7 +534,13 @@ export function makeFxAdapter(config: FxAdapterConfig, options: FxAdapterOptions
             });
             yield* emit(input.threadId, {
               type: "session.state.changed",
-              payload: { state: "ready", reason: "fx runner ready" },
+              payload: {
+                state: "ready",
+                reason:
+                  placement.kind === "sandbox"
+                    ? `fx runner ready in Vercel sandbox ${placement.sandboxName}`
+                    : "fx runner ready",
+              },
             });
             yield* emit(input.threadId, { type: "thread.started", payload: {} });
             return ctx.session;

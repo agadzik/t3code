@@ -52,6 +52,7 @@ function makeFakeLauncher(options?: { readonly initReply?: RunnerFrame }) {
         runners.push(runner);
         yield* Effect.addFinalizer(() => Deferred.succeed(closed, undefined).pipe(Effect.asVoid));
         const link: FxRunnerLink = {
+          placement: { kind: "local", rootDir: input.cwd },
           send: (frame) =>
             Effect.gen(function* () {
               sent.push(frame);

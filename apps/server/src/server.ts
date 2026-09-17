@@ -108,6 +108,11 @@ import { authHttpApiLayer, environmentAuthenticatedAuthLayer } from "./auth/http
 import * as ServerSecretStore from "./auth/ServerSecretStore.ts";
 import * as VercelAuth from "./vercel/VercelAuthService.ts";
 import { vercelAuthRouteLayer } from "./vercel/http.ts";
+import * as ProjectSandboxImages from "./sandbox/ProjectSandboxImages.ts";
+import * as SandboxRunnerBackend from "./sandbox/SandboxRunnerBackend.ts";
+import { SandboxReaperLive } from "./sandbox/SandboxReaper.ts";
+import * as VercelSandboxClient from "./sandbox/VercelSandboxClient.ts";
+import { workspaceBundlerLayer } from "./sandbox/workspaceUpload.ts";
 import * as EnvironmentAuth from "./auth/EnvironmentAuth.ts";
 import {
   connectHttpApiLayer,
@@ -431,6 +436,18 @@ const CloudManagedEndpointRuntimeLive = Layer.mergeAll(
   ),
 );
 
+// Sandbox execution for fx runners. The backend is optional to the driver
+// (`Effect.serviceOption`), so this layer only decides whether the option is
+// present; whether a launch goes to a sandbox is read from settings per launch.
+const SandboxLayerLive = SandboxReaperLive.pipe(
+  Layer.provideMerge(SandboxRunnerBackend.layer),
+  Layer.provide(ProjectSandboxImages.layer),
+  Layer.provide(workspaceBundlerLayer),
+  Layer.provide(VercelSandboxClient.layer),
+  Layer.provide(VercelAuth.layer.pipe(Layer.provide(ServerSecretStore.layer))),
+  Layer.provide(ServerSettingsLayerLive),
+);
+
 const ProviderRuntimeLayerLive = ProviderSessionReaperLive.pipe(
   // Subscribes to `account.rate-limits.updated` so usage bars track live
   // telemetry instead of waiting for the next status probe.
@@ -462,6 +479,7 @@ const RuntimeCoreDependenciesLive = ReactorLayerLive.pipe(
   // adapter lookup, and runtime ingestion all resolve `ProviderInstanceId`
   // through this layer. Built-in drivers come from `BUILT_IN_DRIVERS`.
   Layer.provideMerge(ProviderInstanceRegistryHydrationLive),
+  Layer.provideMerge(SandboxLayerLive),
 ).pipe(
   // Shared native/canonical NDJSON writers used by both per-instance
   // drivers (native stream, written from inside each adapter) and

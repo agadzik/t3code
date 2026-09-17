@@ -4,6 +4,7 @@ import {
   ApprovalRequestId,
   EventId,
   IsoDateTime,
+  ProjectId,
   ProviderItemId,
   ThreadId,
   TurnId,
@@ -32,6 +33,22 @@ const ProviderSessionStatus = Schema.Literals([
   "closed",
 ]);
 
+/**
+ * Where a session's provider process runs. `local` is a child process on
+ * the server host; `sandbox` is a Vercel Sandbox whose filesystem holds a
+ * clone of the thread workspace at `rootDir`. Absent on sessions from
+ * adapters that never leave the host.
+ */
+export const ProviderSessionExecution = Schema.Union([
+  Schema.Struct({ kind: Schema.Literal("local") }),
+  Schema.Struct({
+    kind: Schema.Literal("sandbox"),
+    sandboxName: TrimmedNonEmptyString,
+    rootDir: TrimmedNonEmptyString,
+  }),
+]);
+export type ProviderSessionExecution = typeof ProviderSessionExecution.Type;
+
 export const ProviderSession = Schema.Struct({
   provider: ProviderDriverKind,
   // Optional during the driver/instance migration. Once every producer
@@ -48,6 +65,7 @@ export const ProviderSession = Schema.Struct({
   createdAt: IsoDateTime,
   updatedAt: IsoDateTime,
   lastError: Schema.optional(TrimmedNonEmptyString),
+  execution: Schema.optional(ProviderSessionExecution),
 });
 export type ProviderSession = typeof ProviderSession.Type;
 
@@ -56,6 +74,8 @@ export const ProviderSessionStartInput = Schema.Struct({
   provider: Schema.optional(ProviderDriverKind),
   // See ProviderSession for the migration story.
   providerInstanceId: Schema.optional(ProviderInstanceId),
+  /** Owning project, so adapters can key per-project resources such as sandbox images. */
+  projectId: Schema.optional(ProjectId),
   cwd: Schema.optional(TrimmedNonEmptyString),
   title: Schema.optional(TrimmedNonEmptyString),
   modelSelection: Schema.optional(ModelSelection),

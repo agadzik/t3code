@@ -17,6 +17,7 @@
     }
   },
   "scripts": {
+    "bundle": "node scripts/bundle.ts",
     "typecheck": "tsc --noEmit",
     "test": "vp test run"
   },
