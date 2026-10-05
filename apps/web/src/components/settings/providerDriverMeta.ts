@@ -4,6 +4,7 @@ import {
   ClaudeSettings,
   CodexSettings,
   CursorSettings,
+  FxSettings,
   GrokSettings,
   OpenCodeSettings,
   PiSettings,
@@ -75,6 +76,11 @@ const PROVIDER_CLIENT_DEFINITIONS: readonly ProviderClientDefinition[] = [
     value: ProviderDriverKind.make("grok"),
     label: "Grok",
     settingsSchema: GrokSettings,
+  },
+  {
+    value: ProviderDriverKind.make("fx"),
+    label: "fx",
+    settingsSchema: FxSettings,
   },
   {
     value: ProviderDriverKind.make("opencode"),
