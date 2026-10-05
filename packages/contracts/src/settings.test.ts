@@ -806,7 +806,20 @@ describe("provider enabled defaults", () => {
     expect(decoded.providers.claudeAgent.enabled).toBe(true);
     expect(decoded.providers.cursor.enabled).toBe(false);
     expect(decoded.providers.grok.enabled).toBe(false);
+    expect(decoded.providers.fx.enabled).toBe(false);
     expect(decoded.providers.opencode.enabled).toBe(false);
+  });
+
+  it("round-trips an fx provider patch", () => {
+    const patch = {
+      providers: { fx: { enabled: true, binaryPath: "/usr/local/bin/fx" } },
+    };
+    expect(decodeServerSettingsPatch(patch)).toEqual(patch);
+    expect(decodeServerSettings(patch).providers.fx).toEqual({
+      enabled: true,
+      binaryPath: "/usr/local/bin/fx",
+      customModels: [],
+    });
   });
 
   it("keeps Cursor enabled when an existing user explicitly opted in", () => {
