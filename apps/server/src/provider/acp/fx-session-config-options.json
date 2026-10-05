@@ -1,0 +1,61 @@
+[
+  {
+    "id": "provider",
+    "name": "Provider",
+    "category": "model",
+    "type": "select",
+    "currentValue": "gateway",
+    "options": [
+      { "value": "gateway", "name": "Vercel AI Gateway" },
+      { "value": "codex", "name": "Codex subscription" },
+      { "value": "grok", "name": "Grok subscription" }
+    ]
+  },
+  {
+    "id": "model",
+    "name": "Model",
+    "category": "model",
+    "type": "select",
+    "currentValue": "anthropic/claude-opus-5.5",
+    "options": [
+      { "value": "anthropic/claude-sonnet-5.5", "name": "anthropic/claude-sonnet-5.5" },
+      { "value": "anthropic/claude-opus-5.5", "name": "anthropic/claude-opus-5.5" },
+      { "value": "anthropic/claude-opus-5.5-fast", "name": "anthropic/claude-opus-5.5-fast" },
+      { "value": "openai/gpt-5.6-sol", "name": "openai/gpt-5.6-sol" }
+    ]
+  },
+  {
+    "id": "mode",
+    "name": "Session Mode",
+    "category": "mode",
+    "type": "select",
+    "currentValue": "ask",
+    "options": [
+      {
+        "value": "code",
+        "name": "Code",
+        "description": "Write and modify code with full tool access"
+      },
+      {
+        "value": "ask",
+        "name": "Ask",
+        "description": "Request permission before making any changes"
+      }
+    ]
+  },
+  {
+    "id": "effort",
+    "name": "Reasoning Effort",
+    "category": "thought_level",
+    "type": "select",
+    "currentValue": "xhigh",
+    "options": [
+      { "value": "auto", "name": "default" },
+      { "value": "low", "name": "low" },
+      { "value": "medium", "name": "medium" },
+      { "value": "high", "name": "high" },
+      { "value": "xhigh", "name": "xhigh" },
+      { "value": "max", "name": "max" }
+    ]
+  }
+]
