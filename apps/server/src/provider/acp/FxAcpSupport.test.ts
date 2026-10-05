@@ -1,4 +1,4 @@
-// @effect-diagnostics nodeBuiltinImport:off preferSchemaOverJson:off - recorded session options live next to this test.
+// @effect-diagnostics nodeBuiltinImport:off preferSchemaOverJson:off
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 import * as NodeURL from "node:url";

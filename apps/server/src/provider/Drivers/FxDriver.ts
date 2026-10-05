@@ -50,7 +50,6 @@ import type { ServerProviderDraft } from "../providerSnapshot.ts";
 
 const decodeFxSettings = Schema.decodeSync(FxSettings);
 
-/** `fx upgrade` is fx's own updater. No npm package exists, so latestVersion stays null. */
 const UPDATE: ProviderMaintenanceCapabilitiesResolver = {
   resolve: (context) =>
     Effect.succeed(

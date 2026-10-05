@@ -46,12 +46,6 @@ const FX_MODEL_CAPABILITIES = createModelCapabilities({
   optionDescriptors: [FX_EFFORT_OPTION_DESCRIPTOR],
 });
 
-/**
- * Domain view of `fx status --json`. Observed shapes:
- *   signed in:  { auth: "fx login", auth_refreshable: true, model: "..." }
- *   signed out: { auth: "missing", auth_refreshable: false, auth_help: "..." }
- * The wire shape stays in this file. `team` and the MCP inventory are never read.
- */
 export type FxLogin =
   | { readonly _tag: "SignedIn"; readonly method: string }
   | { readonly _tag: "SignedOut"; readonly help: string }
@@ -77,7 +71,6 @@ export interface FxProviderStatus {
 
 const SIGNED_OUT_HELP = "Run `fx login` to sign in.";
 
-/** `auth === "missing"` -> SignedOut; other non-empty `auth` -> SignedIn; undecodable -> Unknown. */
 export function parseFxStatusJson(stdout: string): FxStatus {
   let parsed: unknown;
   try {
@@ -116,7 +109,6 @@ export function fxLoginToProviderAuth(login: FxLogin): ServerProviderAuth {
   }
 }
 
-/** `fx models --json` -> `ids`. Empty on decode failure. */
 export function parseFxModelsJson(stdout: string): ReadonlyArray<string> {
   let parsed: unknown;
   try {
@@ -133,7 +125,6 @@ export function parseFxModelsJson(stdout: string): ReadonlyArray<string> {
   });
 }
 
-/** "Default (<fx model>)" first, then catalog ids, each carrying FX_EFFORT_OPTION_DESCRIPTOR; custom models last. */
 export function buildFxModels(input: {
   readonly ids: ReadonlyArray<string>;
   readonly defaultModel: string | undefined;
@@ -264,10 +255,6 @@ function fxProbe(
   return { draft, defaultModel };
 }
 
-/**
- * Three read-only CLI calls, no ACP process: `fx --version`, `fx status --json`, `fx models --json`.
- * Never opens a session.
- */
 export const checkFxProviderStatus = Effect.fn("checkFxProviderStatus")(function* (
   settings: FxSettings,
   environment: NodeJS.ProcessEnv = process.env,

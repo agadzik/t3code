@@ -21,12 +21,6 @@ import {
   type AcpAdapterV2RuntimeInput,
 } from "./AcpAdapterV2.ts";
 
-/**
- * The base ACP capabilities plus what fx advertises at initialize. Runtime-mode switching stays
- * false on purpose: the orchestrator then detaches the session on a mode change, and the next
- * turn reloads it and applies the new fx mode. Active steering stays false until a follow-up
- * adds a real steerTurn.
- */
 export const FxProviderCapabilitiesV2 = {
   ...AcpProviderCapabilitiesV2,
   sessions: { ...AcpProviderCapabilitiesV2.sessions, supportsModelSwitchInSession: true },
@@ -45,11 +39,9 @@ export interface FxAdapterV2Options {
   readonly fileSystem: FileSystem.FileSystem;
   readonly idAllocator: IdAllocator.IdAllocatorV2["Service"];
   readonly serverConfig: ServerConfig.ServerConfig["Service"];
-  /** Reads the default model from this instance's latest probe. FxDriver owns the snapshot, so it supplies this. */
   readonly currentFxDefaultModel: Effect.Effect<string | undefined>;
   readonly nativeLogging?: Parameters<typeof makeAcpAdapterV2>[0]["nativeLogging"];
   readonly continuationRequests?: Parameters<typeof makeAcpAdapterV2>[0]["continuationRequests"];
-  /** Test seam: replay runtime from AcpAdapterV2.testkit.ts. */
   readonly makeRuntime?: AcpAdapterV2Flavor["makeRuntime"];
 }
 

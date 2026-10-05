@@ -1,4 +1,4 @@
-// @effect-diagnostics nodeBuiltinImport:off preferSchemaOverJson:off - recorded fx session options live next to the ACP support tests.
+// @effect-diagnostics nodeBuiltinImport:off preferSchemaOverJson:off
 import * as NodeFS from "node:fs";
 import * as NodePath from "node:path";
 import * as NodeURL from "node:url";

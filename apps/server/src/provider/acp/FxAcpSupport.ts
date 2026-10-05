@@ -18,22 +18,12 @@ import { acpPermissionDisposition, type AcpPermissionDisposition } from "./AcpCl
 import type * as ProviderAdapter from "../../orchestration-v2/ProviderAdapter.ts";
 
 export const FX_DRIVER_KIND = ProviderDriverKind.make("fx");
-/** T3 slug for "whatever model fx is configured to run". Never sent on the wire. */
 export const FX_DEFAULT_MODEL_SLUG = "default";
-/** Config ids observed on session/new. `provider` (the fx backend) is absent on purpose: fx owns it in v1. */
 export const FX_MODEL_CONFIG_ID = "model";
 export const FX_EFFORT_CONFIG_ID = "effort";
 
-/** The only two mode ids fx advertises. */
 export type FxSessionMode = "ask" | "code";
 
-/**
- * The T3 runtime modes fx offers. Full access is left out (maintainer decision, 2026-10-05).
- * Web and mobile hide unlisted modes. In production RuntimePolicy runs an unlisted mode as
- * approval-required; the test replay harness does not, so fxRuntimeModeOf normalizes again.
- * Keep approval-required first: the composer displays the first listed mode for a thread
- * whose stored mode is unlisted.
- */
 export const FX_SUPPORTED_RUNTIME_MODES = [
   "approval-required",
   "auto-accept-edits",
@@ -41,18 +31,12 @@ export const FX_SUPPORTED_RUNTIME_MODES = [
 ] as const satisfies ReadonlyArray<RuntimeMode>;
 export type FxRuntimeMode = (typeof FX_SUPPORTED_RUNTIME_MODES)[number];
 
-/** One row per supported mode. Adding a mode to the list without a row is a compile error. */
 export const FX_SESSION_MODE_BY_RUNTIME_MODE = {
   "approval-required": "ask",
-  // T3 allows edit-kind requests and asks for the rest (AcpClientPolicy).
   "auto-accept-edits": "ask",
   auto: "code",
 } as const satisfies Record<FxRuntimeMode, FxSessionMode>;
 
-/**
- * Static composer control. `default` is T3-only: configureSession skips select
- * values the live session does not advertise, so fx keeps its own effort.
- */
 export const FX_EFFORT_OPTION_DESCRIPTOR: ProviderOptionDescriptor = {
   id: FX_EFFORT_CONFIG_ID,
   label: "Effort",
@@ -82,15 +66,9 @@ export function buildFxAcpSpawnInput(
   cwd: string,
   environment?: NodeJS.ProcessEnv,
 ): AcpSessionRuntime.AcpSpawnInput {
-  // No --model: the model is a session config option, so resume and in-session switch share one path.
   return { command: settings.binaryPath || "fx", args: ["acp"], cwd, env: { ...environment } };
 }
 
-/**
- * The one place an unlisted mode becomes approval-required for fx, mirroring RuntimePolicy's clamp.
- * Both hooks below read the mode through it, so a full-access policy can never reach
- * acpPermissionDisposition, which would allow every request.
- */
 export function fxRuntimeModeOf(policy: ProviderAdapter.ProviderAdapterV2RuntimePolicy): FxRuntimeMode {
   const mode = policy.runtimeMode;
   for (const supported of FX_SUPPORTED_RUNTIME_MODES) {
@@ -99,7 +77,6 @@ export function fxRuntimeModeOf(policy: ProviderAdapter.ProviderAdapterV2Runtime
   return "approval-required";
 }
 
-/** Explicit approval or sandbox overrides force `ask` so T3 sees every mutation (Grok precedent). */
 export function fxSessionModeForPolicy(
   policy: ProviderAdapter.ProviderAdapterV2RuntimePolicy,
 ): FxSessionMode {
@@ -109,7 +86,6 @@ export function fxSessionModeForPolicy(
   return FX_SESSION_MODE_BY_RUNTIME_MODE[fxRuntimeModeOf(policy)];
 }
 
-/** In `code` fx already allowed what its own policy allows, so under Auto whatever it still asks reaches the user. */
 export function fxPermissionDisposition(
   policy: ProviderAdapter.ProviderAdapterV2RuntimePolicy,
   request: EffectAcpSchema.RequestPermissionRequest,
@@ -123,11 +99,6 @@ export function fxPermissionDisposition(
 
 /**
  * Writes config id `model` by id, never the first `category: "model"` option (that is `provider`).
- * The default slug resolves to `fxDefaultModel`, the model the latest `fx status --json` reported,
- * so choosing Default after a concrete model restores fx's own choice on a resumed session too.
- * Idempotent: a target equal to the live value writes nothing.
- * An id the live session does not advertise (the user switched fx backend outside T3) logs a
- * warning and keeps the current model, so a stale catalog cannot wedge a thread.
  */
 export const applyFxModelSelection = (input: {
   readonly runtime: Pick<

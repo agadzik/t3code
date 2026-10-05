@@ -752,7 +752,6 @@ export const GrokSettings = makeProviderSettingsSchema(
 );
 export type GrokSettings = typeof GrokSettings.Type;
 
-/** Off by default like Grok and Pi (maintainer decision, 2026-10-05). Users opt in from Settings. */
 export const FxSettings = makeProviderSettingsSchema(
   {
     enabled: Schema.Boolean.pipe(
