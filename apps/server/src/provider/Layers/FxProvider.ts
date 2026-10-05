@@ -1,15 +1,18 @@
 import {
   type CustomModelSetting,
   type FxSettings,
+  type ServerProvider,
   type ServerProviderAuth,
   type ServerProviderModel,
 } from "@t3tools/contracts";
+import { causeErrorTag } from "@t3tools/shared/observability";
 import { createModelCapabilities } from "@t3tools/shared/model";
 import { resolveSpawnCommand } from "@t3tools/shared/shell";
 import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Result from "effect/Result";
+import { HttpClient } from "effect/unstable/http";
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
 
 import {
@@ -25,6 +28,10 @@ import {
   spawnAndCollect,
   type ServerProviderDraft,
 } from "../providerSnapshot.ts";
+import {
+  enrichProviderSnapshotWithVersionAdvisory,
+  type ProviderMaintenanceCapabilities,
+} from "../providerMaintenance.ts";
 
 export const FX_PRESENTATION = {
   displayName: "fx",
@@ -158,6 +165,34 @@ const runFxCliCommand = (
       }),
     );
   });
+
+export function buildInitialFxProviderSnapshot(
+  settings: FxSettings,
+): Effect.Effect<ServerProviderDraft> {
+  return Effect.gen(function* () {
+    const checkedAt = yield* Effect.map(DateTime.now, DateTime.formatIso);
+    if (!settings.enabled) {
+      return fxDisabledDraft(settings, checkedAt);
+    }
+    return buildServerProvider({
+      presentation: FX_PRESENTATION,
+      enabled: true,
+      checkedAt,
+      models: buildFxModels({
+        ids: [],
+        defaultModel: undefined,
+        customModels: settings.customModels,
+      }),
+      probe: {
+        installed: true,
+        version: null,
+        status: "warning",
+        auth: { status: "unknown" },
+        message: "Checking fx CLI availability...",
+      },
+    });
+  });
+}
 
 function fxDisabledDraft(
   settings: FxSettings,
@@ -320,3 +355,23 @@ export const checkFxProviderStatus = Effect.fn("checkFxProviderStatus")(function
     },
   });
 });
+
+export const enrichFxSnapshot = (input: {
+  readonly snapshot: ServerProvider;
+  readonly maintenanceCapabilities: ProviderMaintenanceCapabilities;
+  readonly enableProviderUpdateChecks?: boolean;
+  readonly publishSnapshot: (snapshot: ServerProvider) => Effect.Effect<void>;
+  readonly httpClient: HttpClient.HttpClient;
+}): Effect.Effect<void> =>
+  enrichProviderSnapshotWithVersionAdvisory(input.snapshot, input.maintenanceCapabilities, {
+    enableProviderUpdateChecks: input.enableProviderUpdateChecks,
+  }).pipe(
+    Effect.provideService(HttpClient.HttpClient, input.httpClient),
+    Effect.flatMap((enrichedSnapshot) => input.publishSnapshot(enrichedSnapshot)),
+    Effect.catchCause((cause) =>
+      Effect.logWarning("fx version advisory enrichment failed", {
+        errorTag: causeErrorTag(cause),
+      }),
+    ),
+    Effect.asVoid,
+  );
