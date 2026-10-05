@@ -141,7 +141,7 @@ export const FxAdapterV2Driver: ProviderAdapterDriver<FxSettings, FxAdapterV2Dri
         idAllocator,
         serverConfig,
         selfInvocation,
-        currentFxDefaultModel: Effect.succeed(undefined),
+        currentFxDefaultModel: Effect.succeed<string | undefined>(undefined),
         continuationRequests,
         nativeLogging: (threadId) =>
           makeNativeLogger({

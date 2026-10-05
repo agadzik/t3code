@@ -1,6 +1,7 @@
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+// @effect-diagnostics nodeBuiltinImport:off preferSchemaOverJson:off - recorded session options live next to this test.
+import * as NodeFS from "node:fs";
+import * as NodePath from "node:path";
+import * as NodeURL from "node:url";
 
 import { describe, expect, it } from "@effect/vitest";
 import type { RuntimeMode } from "@t3tools/contracts";
@@ -18,7 +19,10 @@ import {
 } from "./FxAcpSupport.ts";
 
 const recordedConfigOptions = JSON.parse(
-  readFileSync(join(dirname(fileURLToPath(import.meta.url)), "fx-session-config-options.json"), "utf8"),
+  NodeFS.readFileSync(
+    NodePath.join(NodePath.dirname(NodeURL.fileURLToPath(import.meta.url)), "fx-session-config-options.json"),
+    "utf8",
+  ),
 ) as ReadonlyArray<EffectAcpSchema.SessionConfigOption>;
 
 function runtimePolicy(

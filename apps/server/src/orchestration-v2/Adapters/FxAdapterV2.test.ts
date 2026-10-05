@@ -1,7 +1,7 @@
-// @effect-diagnostics nodeBuiltinImport:off - recorded fx session options live next to the ACP support tests.
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+// @effect-diagnostics nodeBuiltinImport:off preferSchemaOverJson:off - recorded fx session options live next to the ACP support tests.
+import * as NodeFS from "node:fs";
+import * as NodePath from "node:path";
+import * as NodeURL from "node:url";
 
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { describe, it } from "@effect/vitest";
@@ -29,8 +29,11 @@ import { makeFxAdapterV2 } from "./FxAdapterV2.ts";
 
 const decodeFxSettings = Schema.decodeSync(FxSettings);
 const recordedConfigOptions = JSON.parse(
-  readFileSync(
-    join(dirname(fileURLToPath(import.meta.url)), "../../provider/acp/fx-session-config-options.json"),
+  NodeFS.readFileSync(
+    NodePath.join(
+      NodePath.dirname(NodeURL.fileURLToPath(import.meta.url)),
+      "../../provider/acp/fx-session-config-options.json",
+    ),
     "utf8",
   ),
 ) as ReadonlyArray<EffectAcpSchema.SessionConfigOption>;

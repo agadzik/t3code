@@ -1,7 +1,7 @@
-// @effect-diagnostics nodeBuiltinImport:off - fixture paths and fake CLI argv logs are local files.
-import { readFileSync } from "node:fs";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
+// @effect-diagnostics nodeBuiltinImport:off preferSchemaOverJson:off - fixtures and fake CLI argv logs are local files.
+import * as NodeFS from "node:fs";
+import * as NodePath from "node:path";
+import * as NodeURL from "node:url";
 
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { describe, expect, it } from "@effect/vitest";
@@ -20,10 +20,10 @@ import {
 } from "./FxProvider.ts";
 
 const decodeFxSettings = Schema.decodeSync(FxSettings);
-const fixturesDir = dirname(fileURLToPath(import.meta.url));
-const SIGNED_IN_STATUS = readFileSync(join(fixturesDir, "fx-status-signed-in.json"), "utf8");
-const SIGNED_OUT_STATUS = readFileSync(join(fixturesDir, "fx-status-signed-out.json"), "utf8");
-const MODELS_JSON = readFileSync(join(fixturesDir, "fx-models.json"), "utf8");
+const fixturesDir = NodePath.dirname(NodeURL.fileURLToPath(import.meta.url));
+const SIGNED_IN_STATUS = NodeFS.readFileSync(NodePath.join(fixturesDir, "fx-status-signed-in.json"), "utf8");
+const SIGNED_OUT_STATUS = NodeFS.readFileSync(NodePath.join(fixturesDir, "fx-status-signed-out.json"), "utf8");
+const MODELS_JSON = NodeFS.readFileSync(NodePath.join(fixturesDir, "fx-models.json"), "utf8");
 
 describe("parseFxStatusJson", () => {
   it("maps a signed-in capture to SignedIn and the default model", () => {
@@ -143,7 +143,7 @@ it.layer(NodeServices.layer)("checkFxProviderStatus", (it) => {
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
       const dir = yield* fs.makeTempDirectoryScoped({ prefix: "t3code-fx-missing-" });
-      const argvLogPath = join(dir, "argv.log");
+      const argvLogPath = NodePath.join(dir, "argv.log");
       const snapshot = yield* checkFxProviderStatus(
         decodeFxSettings({
           enabled: true,
@@ -162,7 +162,7 @@ it.layer(NodeServices.layer)("checkFxProviderStatus", (it) => {
       expect(snapshot.installed).toBe(false);
       expect(snapshot.status).toBe("error");
       expect(snapshot.message).toBe("fx is not installed");
-      expect(readFileSync(argvLogPath, "utf8")).toBe("--version\n");
+      expect(NodeFS.readFileSync(argvLogPath, "utf8")).toBe("--version\n");
     }).pipe(Effect.scoped),
   );
 
