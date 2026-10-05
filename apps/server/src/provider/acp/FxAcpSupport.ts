@@ -58,7 +58,7 @@ export const FX_EFFORT_OPTION_DESCRIPTOR: ProviderOptionDescriptor = {
   label: "Effort",
   type: "select",
   options: [
-    { id: "default", label: "Default", isDefault: true },
+    { id: "default", label: "fx setting", isDefault: true },
     { id: "auto", label: "Auto" },
     { id: "low", label: "Low" },
     { id: "medium", label: "Medium" },

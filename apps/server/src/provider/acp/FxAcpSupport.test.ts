@@ -109,11 +109,12 @@ describe("fx session mode", () => {
 
 describe("FX_EFFORT_OPTION_DESCRIPTOR", () => {
   it("marks default as the default effort", () => {
-    expect(
+    const choice =
       FX_EFFORT_OPTION_DESCRIPTOR.type === "select"
-        ? FX_EFFORT_OPTION_DESCRIPTOR.options.find((option) => option.isDefault)?.id
-        : undefined,
-    ).toBe("default");
+        ? FX_EFFORT_OPTION_DESCRIPTOR.options.find((option) => option.isDefault)
+        : undefined;
+    expect(choice?.id).toBe("default");
+    expect(choice?.label).toBe("fx setting");
   });
 });
 
