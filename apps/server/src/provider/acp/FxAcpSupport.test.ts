@@ -13,6 +13,7 @@ import {
   applyFxModelSelection,
   buildFxAcpSpawnInput,
   FX_DEFAULT_MODEL_SLUG,
+  FX_EFFORT_OPTION_DESCRIPTOR,
   FX_MODEL_CONFIG_ID,
   fxPermissionDisposition,
   fxSessionModeForPolicy,
@@ -103,6 +104,16 @@ describe("fx session mode", () => {
     });
     expect(fxSessionModeForPolicy(readOnly)).toBe("ask");
     expect(fxPermissionDisposition(readOnly, permissionRequest("execute"))).toBe("deny");
+  });
+});
+
+describe("FX_EFFORT_OPTION_DESCRIPTOR", () => {
+  it("marks default as the default effort", () => {
+    expect(
+      FX_EFFORT_OPTION_DESCRIPTOR.type === "select"
+        ? FX_EFFORT_OPTION_DESCRIPTOR.options.find((option) => option.isDefault)?.id
+        : undefined,
+    ).toBe("default");
   });
 });
 

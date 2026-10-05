@@ -49,12 +49,23 @@ export const FX_SESSION_MODE_BY_RUNTIME_MODE = {
   auto: "code",
 } as const satisfies Record<FxRuntimeMode, FxSessionMode>;
 
-/** Static composer control. The snapshot's model capabilities carry it; configureSession skips values the live session lacks. */
+/**
+ * Static composer control. `default` is T3-only: configureSession skips select
+ * values the live session does not advertise, so fx keeps its own effort.
+ */
 export const FX_EFFORT_OPTION_DESCRIPTOR: ProviderOptionDescriptor = {
   id: FX_EFFORT_CONFIG_ID,
   label: "Effort",
   type: "select",
-  options: ["auto", "low", "medium", "high", "xhigh", "max"].map((id) => ({ id, label: id })),
+  options: [
+    { id: "default", label: "Default", isDefault: true },
+    { id: "auto", label: "Auto" },
+    { id: "low", label: "Low" },
+    { id: "medium", label: "Medium" },
+    { id: "high", label: "High" },
+    { id: "xhigh", label: "Extra High" },
+    { id: "max", label: "Max" },
+  ],
 };
 
 export interface FxAcpRuntimeInput extends Omit<

@@ -78,6 +78,7 @@ describe("FxAdapterV2", () => {
     readonly scenario: string;
     readonly entries: ReadonlyArray<Frame>;
     readonly initialNativeThreadId?: string;
+    readonly options?: ReadonlyArray<{ readonly id: string; readonly value: string }>;
   }) {
     const childProcessSpawner = yield* ChildProcessSpawner.ChildProcessSpawner;
     const fileSystem = yield* FileSystem.FileSystem;
@@ -123,7 +124,7 @@ describe("FxAdapterV2", () => {
         modelSelection: {
           instanceId,
           model: "anthropic/claude-sonnet-5.5",
-          options: [{ id: "effort", value: "high" }],
+          options: input.options ?? [{ id: "effort", value: "high" }],
         },
         runtimePolicy: ProviderAdapterV2RuntimePolicy.make({
           runtimeMode: "auto",
@@ -161,6 +162,35 @@ describe("FxAdapterV2", () => {
         }),
         answer("session/set_config_option", {
           configOptions: withCurrent("effort", "high"),
+        }),
+        outbound("session/set_config_option", {
+          sessionId: "fx-session",
+          configId: "mode",
+          value: "code",
+        }),
+        answer("session/set_config_option", {
+          configOptions: withCurrent("mode", "code"),
+        }),
+      ],
+    }).pipe(Effect.provide(testLayer), Effect.scoped),
+  );
+
+  it.effect("sends no effort write when Default is selected", () =>
+    openReplay({
+      scenario: "fx-session-new-default-effort",
+      options: [{ id: "effort", value: "default" }],
+      entries: [
+        outbound("initialize"),
+        answer("initialize", initializeResult),
+        outbound("session/new"),
+        answer("session/new", { sessionId: "fx-session", configOptions: recordedConfigOptions }),
+        outbound("session/set_config_option", {
+          sessionId: "fx-session",
+          configId: "model",
+          value: "anthropic/claude-sonnet-5.5",
+        }),
+        answer("session/set_config_option", {
+          configOptions: withCurrent("model", "anthropic/claude-sonnet-5.5"),
         }),
         outbound("session/set_config_option", {
           sessionId: "fx-session",
