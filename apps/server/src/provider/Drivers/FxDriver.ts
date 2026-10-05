@@ -10,7 +10,7 @@ import { ChildProcessSpawner } from "effect/unstable/process";
 
 import * as BackgroundPolicy from "../../background/BackgroundPolicy.ts";
 import * as ServerConfig from "../../config.ts";
-import { makeFxAdapterV2, type FxAdapterV2DriverEnv } from "../../orchestration-v2/Adapters/FxAdapterV2.ts";
+import { makeFxAdapterV2 } from "../../orchestration-v2/Adapters/FxAdapterV2.ts";
 import * as ProviderEventLoggers from "../Layers/ProviderEventLoggers.ts";
 import * as ServerSettings from "../../serverSettings.ts";
 import { makeUnsupportedTextGeneration } from "../../textGeneration/UnsupportedTextGeneration.ts";
@@ -80,12 +80,12 @@ function fxReportedDefaultModel(draft: ServerProviderDraft): string | undefined 
 }
 
 export type FxDriverEnv =
-  | FxAdapterV2DriverEnv
   | BackgroundPolicy.BackgroundPolicy
   | ChildProcessSpawner.ChildProcessSpawner
   | Crypto.Crypto
   | FileSystem.FileSystem
   | HttpClient.HttpClient
+  | IdAllocator.IdAllocatorV2
   | Path.Path
   | ProviderEventLoggers.ProviderEventLoggers
   | ServerConfig.ServerConfig

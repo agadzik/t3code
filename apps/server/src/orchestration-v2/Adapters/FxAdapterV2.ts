@@ -1,15 +1,11 @@
-import { FxSettings, type OrchestrationV2ProviderCapabilities } from "@t3tools/contracts";
-import { HostProcessEnvironment } from "@t3tools/shared/hostProcess";
-import { resolveSelfInvocation, type SelfInvocation } from "@t3tools/shared/nodeRuntime";
+import { type FxSettings, type OrchestrationV2ProviderCapabilities } from "@t3tools/contracts";
+import { type SelfInvocation } from "@t3tools/shared/nodeRuntime";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
-import type * as Path from "effect/Path";
-import * as Schema from "effect/Schema";
 import { ChildProcessSpawner } from "effect/unstable/process";
 
 import * as ServerConfig from "../../config.ts";
-import { makeAcpNativeLoggerFactory } from "../../provider/acp/AcpNativeLogging.ts";
 import {
   applyFxModelSelection,
   FX_DRIVER_KIND,
@@ -17,23 +13,13 @@ import {
   fxSessionModeForPolicy,
   makeFxAcpRuntime,
 } from "../../provider/acp/FxAcpSupport.ts";
-import { mergeProviderInstanceEnvironment } from "../../provider/ProviderInstanceEnvironment.ts";
-import * as ProviderEventLoggers from "../../provider/Layers/ProviderEventLoggers.ts";
 import * as IdAllocator from "../IdAllocator.ts";
-import * as ProviderContinuationRequests from "../ProviderContinuationRequests.ts";
-import {
-  ProviderAdapterDriverCreateError,
-  type ProviderAdapterDriver,
-  type ProviderAdapterDriverCreateInput,
-} from "../ProviderAdapterDriver.ts";
 import {
   AcpProviderCapabilitiesV2,
   makeAcpAdapterV2,
   type AcpAdapterV2Flavor,
   type AcpAdapterV2RuntimeInput,
 } from "./AcpAdapterV2.ts";
-
-const DEFAULT_FX_SETTINGS = Schema.decodeSync(FxSettings)({});
 
 /**
  * The base ACP capabilities plus what fx advertises at initialize. Runtime-mode switching stays
@@ -105,63 +91,3 @@ export function makeFxAdapterV2(options: FxAdapterV2Options) {
       : { continuationRequests: options.continuationRequests }),
   });
 }
-
-export type FxAdapterV2DriverEnv =
-  | ChildProcessSpawner.ChildProcessSpawner
-  | Crypto.Crypto
-  | FileSystem.FileSystem
-  | IdAllocator.IdAllocatorV2
-  | Path.Path
-  | ProviderEventLoggers.ProviderEventLoggers
-  | ServerConfig.ServerConfig;
-
-export const FxAdapterV2Driver: ProviderAdapterDriver<FxSettings, FxAdapterV2DriverEnv> = {
-  driverKind: FX_DRIVER_KIND,
-  configSchema: FxSettings,
-  defaultConfig: (): FxSettings => DEFAULT_FX_SETTINGS,
-  create: Effect.fn("FxAdapterV2Driver.create")(
-    function* (input: ProviderAdapterDriverCreateInput<FxSettings>) {
-      const hostEnvironment = yield* HostProcessEnvironment;
-      const selfInvocation = yield* resolveSelfInvocation();
-      const childProcessSpawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-      const crypto = yield* Crypto.Crypto;
-      const fileSystem = yield* FileSystem.FileSystem;
-      const idAllocator = yield* IdAllocator.IdAllocatorV2;
-      const providerEventLoggers = yield* ProviderEventLoggers.ProviderEventLoggers;
-      const serverConfig = yield* ServerConfig.ServerConfig;
-      const continuationRequests = yield* ProviderContinuationRequests.ProviderContinuationRequests;
-      const makeNativeLogger = yield* makeAcpNativeLoggerFactory();
-      return makeFxAdapterV2({
-        instanceId: input.instanceId,
-        settings: { ...input.config, enabled: input.enabled },
-        environment: mergeProviderInstanceEnvironment(input.environment, hostEnvironment),
-        childProcessSpawner,
-        crypto,
-        fileSystem,
-        idAllocator,
-        serverConfig,
-        selfInvocation,
-        currentFxDefaultModel: Effect.succeed<string | undefined>(undefined),
-        continuationRequests,
-        nativeLogging: (threadId) =>
-          makeNativeLogger({
-            nativeEventLogger: providerEventLoggers.native,
-            provider: FX_DRIVER_KIND,
-            threadId,
-          }),
-      });
-    },
-    (effect, input) =>
-      effect.pipe(
-        Effect.mapError(
-          (cause) =>
-            new ProviderAdapterDriverCreateError({
-              driver: FX_DRIVER_KIND,
-              instanceId: input.instanceId,
-              detail: "Failed to create fx ACP adapter.",
-              cause,
-            }),
-        ),
-      ),
-  ),
-};
