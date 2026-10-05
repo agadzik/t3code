@@ -8,6 +8,7 @@ import type { RuntimeMode } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import type * as EffectAcpSchema from "effect-acp/compat";
 
+import { collectSessionConfigOptionValues } from "./AcpRuntimeModel.ts";
 import { ProviderAdapterV2RuntimePolicy } from "../../orchestration-v2/ProviderAdapter.ts";
 import {
   applyFxEffortSelection,
@@ -58,6 +59,22 @@ function permissionRequest(
       kind,
     },
   };
+}
+
+function recordedEffortSelect(): Extract<EffectAcpSchema.SessionConfigOption, { type: "select" }> {
+  const effort = recordedConfigOptions.find(
+    (option) => option.id === FX_EFFORT_CONFIG_ID && option.type === "select",
+  );
+  if (effort === undefined || effort.type !== "select") {
+    throw new Error("recorded fx session fixture is missing the effort select");
+  }
+  return effort;
+}
+
+function withRecordedEffortSelect(
+  effort: Extract<EffectAcpSchema.SessionConfigOption, { type: "select" }>,
+): ReadonlyArray<EffectAcpSchema.SessionConfigOption> {
+  return recordedConfigOptions.map((option) => (option.id === FX_EFFORT_CONFIG_ID ? effort : option));
 }
 
 function makeRecordingRuntime(
@@ -221,9 +238,7 @@ describe("applyFxEffortSelection", () => {
   it.effect("writes nothing when live effort is already medium", () =>
     Effect.gen(function* () {
       const { runtime, writes } = makeRecordingRuntime(
-        recordedConfigOptions.map((option) =>
-          option.id === "effort" && option.type === "select" ? { ...option, currentValue: "medium" } : option,
-        ),
+        withRecordedEffortSelect({ ...recordedEffortSelect(), currentValue: "medium" }),
       );
       yield* applyFxEffortSelection({ runtime, requestedEffort: undefined });
       expect(writes).toEqual([]);
@@ -232,13 +247,13 @@ describe("applyFxEffortSelection", () => {
 
   it.effect("writes nothing when the live session does not advertise medium", () =>
     Effect.gen(function* () {
+      const effort = recordedEffortSelect();
       const { runtime, writes } = makeRecordingRuntime(
-        recordedConfigOptions.map((option) => {
-          if (option.id !== "effort" || option.type !== "select") return option;
-          return {
-            ...option,
-            options: option.options.filter((entry) => !("value" in entry) || entry.value !== "medium"),
-          };
+        withRecordedEffortSelect({
+          ...effort,
+          options: collectSessionConfigOptionValues(effort)
+            .filter((id) => id !== "medium")
+            .map((id) => ({ value: id, name: id })),
         }),
       );
       yield* applyFxEffortSelection({ runtime, requestedEffort: undefined });
