@@ -17,7 +17,7 @@ import { makeUnsupportedTextGeneration } from "../../textGeneration/UnsupportedT
 import { HostProcessEnvironment } from "@t3tools/shared/hostProcess";
 import { resolveSelfInvocation } from "@t3tools/shared/nodeRuntime";
 import { makeAcpNativeLoggerFactory } from "../acp/AcpNativeLogging.ts";
-import { FX_DEFAULT_MODEL_SLUG, FX_DRIVER_KIND } from "../acp/FxAcpSupport.ts";
+import { FX_DRIVER_KIND } from "../acp/FxAcpSupport.ts";
 import { ProviderDriverError } from "../Errors.ts";
 import {
   buildInitialFxProviderSnapshot,
@@ -70,14 +70,6 @@ const UPDATE: ProviderMaintenanceCapabilitiesResolver = {
           }),
     ),
 };
-
-function fxReportedDefaultModel(draft: ServerProviderDraft): string | undefined {
-  const name = draft.models.find((model) => model.slug === FX_DEFAULT_MODEL_SLUG)?.name;
-  if (name === undefined || !name.startsWith("Default (") || !name.endsWith(")")) {
-    return undefined;
-  }
-  return name.slice("Default (".length, -1) || undefined;
-}
 
 export type FxDriverEnv =
   | BackgroundPolicy.BackgroundPolicy
@@ -160,13 +152,15 @@ export const FxDriver: ProviderDriver<FxSettings, FxDriverEnv> = {
             threadId,
           }),
       });
+      // Every fx acp session is saved under the user's fx home, and generation 1
+      // has no session/delete, so one helper session per title would fill history.
       const textGeneration = makeUnsupportedTextGeneration(
         "fx does not provide application text generation yet.",
       );
 
       const checkProvider = checkFxProviderStatus(effectiveConfig, processEnv).pipe(
-        Effect.tap((draft) => Ref.set(currentFxDefaultModelRef, fxReportedDefaultModel(draft))),
-        Effect.map(stampIdentity),
+        Effect.tap((probe) => Ref.set(currentFxDefaultModelRef, probe.defaultModel)),
+        Effect.map((probe) => stampIdentity(probe.draft)),
         Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
       );
 

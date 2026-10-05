@@ -43,6 +43,13 @@ describe("parseFxStatusJson", () => {
     });
   });
 
+  it("falls back when signed-out status omits auth_help", () => {
+    expect(parseFxStatusJson(JSON.stringify({ auth: "missing" }))).toEqual({
+      login: { _tag: "SignedOut", help: "Run `fx login` to sign in." },
+      defaultModel: undefined,
+    });
+  });
+
   it("maps undecodable output to Unknown", () => {
     expect(parseFxStatusJson("not json")).toEqual({
       login: { _tag: "Unknown" },
@@ -139,12 +146,12 @@ it.layer(NodeServices.layer)("checkFxProviderStatus", (it) => {
       });
     });
 
-  it.effect("reports a missing binary as not installed after one spawn", () =>
+  it.effect("reports a non-zero version exit as installed but failed after one spawn", () =>
     Effect.gen(function* () {
       const fs = yield* FileSystem.FileSystem;
-      const dir = yield* fs.makeTempDirectoryScoped({ prefix: "t3code-fx-missing-" });
+      const dir = yield* fs.makeTempDirectoryScoped({ prefix: "t3code-fx-version-fail-" });
       const argvLogPath = NodePath.join(dir, "argv.log");
-      const snapshot = yield* checkFxProviderStatus(
+      const probe = yield* checkFxProviderStatus(
         decodeFxSettings({
           enabled: true,
           binaryPath: writeFakeCli({
@@ -159,46 +166,65 @@ it.layer(NodeServices.layer)("checkFxProviderStatus", (it) => {
           }),
         }),
       );
-      expect(snapshot.installed).toBe(false);
-      expect(snapshot.status).toBe("error");
-      expect(snapshot.message).toBe("fx is not installed");
+      expect(probe.draft.installed).toBe(true);
+      expect(probe.draft.status).toBe("error");
+      expect(probe.draft.message).toBe("fx is installed but failed to run.");
+      expect(probe.defaultModel).toBeUndefined();
       expect(NodeFS.readFileSync(argvLogPath, "utf8")).toBe("--version\n");
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect("reports a missing binary as not installed", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const dir = yield* fs.makeTempDirectoryScoped({ prefix: "t3code-fx-missing-" });
+      const probe = yield* checkFxProviderStatus(
+        decodeFxSettings({
+          enabled: true,
+          binaryPath: NodePath.join(dir, "no-such-fx"),
+        }),
+      );
+      expect(probe.draft.installed).toBe(false);
+      expect(probe.draft.status).toBe("error");
+      expect(probe.draft.message).toBe("fx is not installed or not on PATH.");
+      expect(probe.defaultModel).toBeUndefined();
     }).pipe(Effect.scoped),
   );
 
   it.effect("maps signed-in status onto authenticated ready", () =>
     Effect.gen(function* () {
-      const snapshot = yield* Effect.scoped(
+      const probe = yield* Effect.scoped(
         Effect.gen(function* () {
           const fxPath = yield* writeFakeFxCli({});
           return yield* checkFxProviderStatus(decodeFxSettings({ enabled: true, binaryPath: fxPath }));
         }),
       );
-      expect(snapshot.status).toBe("ready");
-      expect(snapshot.version).toBe("0.0.13");
-      expect(snapshot.auth).toEqual({ status: "authenticated", label: "fx login" });
-      expect(snapshot.models.map((model) => model.slug)).toEqual([
+      expect(probe.defaultModel).toBe("anthropic/claude-opus-5.5");
+      expect(probe.draft.status).toBe("ready");
+      expect(probe.draft.version).toBe("0.0.13");
+      expect(probe.draft.auth).toEqual({ status: "authenticated", label: "fx login" });
+      expect(probe.draft.models.map((model) => model.slug)).toEqual([
         "default",
         "anthropic/claude-sonnet-5.5",
         "anthropic/claude-opus-5.5",
         "openai/gpt-5.6-sol",
         "spacexai/grok-4.7",
       ]);
-      expect(snapshot.models[0]?.name).toBe("Default (anthropic/claude-opus-5.5)");
+      expect(probe.draft.models[0]?.name).toBe("Default (anthropic/claude-opus-5.5)");
     }),
   );
 
   it.effect("maps signed-out status onto error with auth_help", () =>
     Effect.gen(function* () {
-      const snapshot = yield* Effect.scoped(
+      const probe = yield* Effect.scoped(
         Effect.gen(function* () {
           const fxPath = yield* writeFakeFxCli({ statusJson: SIGNED_OUT_STATUS });
           return yield* checkFxProviderStatus(decodeFxSettings({ enabled: true, binaryPath: fxPath }));
         }),
       );
-      expect(snapshot.status).toBe("error");
-      expect(snapshot.auth.status).toBe("unauthenticated");
-      expect(snapshot.message).toBe(
+      expect(probe.draft.status).toBe("error");
+      expect(probe.draft.auth.status).toBe("unauthenticated");
+      expect(probe.draft.message).toBe(
         "fx needs access to Vercel AI Gateway. Run fx login to sign in, fx setup to use an API key, or set AI_GATEWAY_API_KEY.",
       );
     }),
@@ -206,20 +232,20 @@ it.layer(NodeServices.layer)("checkFxProviderStatus", (it) => {
 
   it.effect("maps undecodable status onto unknown with a warning", () =>
     Effect.gen(function* () {
-      const snapshot = yield* Effect.scoped(
+      const probe = yield* Effect.scoped(
         Effect.gen(function* () {
           const fxPath = yield* writeFakeFxCli({ statusJson: "not-json" });
           return yield* checkFxProviderStatus(decodeFxSettings({ enabled: true, binaryPath: fxPath }));
         }),
       );
-      expect(snapshot.status).toBe("warning");
-      expect(snapshot.auth.status).toBe("unknown");
+      expect(probe.draft.status).toBe("warning");
+      expect(probe.draft.auth.status).toBe("unknown");
     }),
   );
 
   it.effect("keeps Default plus custom models when models listing fails", () =>
     Effect.gen(function* () {
-      const snapshot = yield* Effect.scoped(
+      const probe = yield* Effect.scoped(
         Effect.gen(function* () {
           const fxPath = yield* writeFakeFxCli({ modelsExit: 3 });
           return yield* checkFxProviderStatus(
@@ -227,8 +253,8 @@ it.layer(NodeServices.layer)("checkFxProviderStatus", (it) => {
           );
         }),
       );
-      expect(snapshot.status).toBe("warning");
-      expect(snapshot.models.map((model) => model.slug)).toEqual(["default", "my-fx-model"]);
+      expect(probe.draft.status).toBe("warning");
+      expect(probe.draft.models.map((model) => model.slug)).toEqual(["default", "my-fx-model"]);
     }),
   );
 });
