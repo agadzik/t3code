@@ -12,6 +12,7 @@ import * as DateTime from "effect/DateTime";
 import * as Effect from "effect/Effect";
 import * as Option from "effect/Option";
 import * as Result from "effect/Result";
+import * as Schema from "effect/Schema";
 import { HttpClient } from "effect/unstable/http";
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
 
@@ -71,23 +72,26 @@ export interface FxProviderStatus {
 
 const SIGNED_OUT_HELP = "Run `fx login` to sign in.";
 
+const FxStatusWire = Schema.Struct({
+  auth: Schema.optional(Schema.String),
+  auth_refreshable: Schema.optional(Schema.Boolean),
+  auth_help: Schema.optional(Schema.String),
+  model: Schema.optional(Schema.String),
+});
+const decodeFxStatusWire = Schema.decodeUnknownOption(Schema.fromJsonString(FxStatusWire));
+
 export function parseFxStatusJson(stdout: string): FxStatus {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(stdout);
-  } catch {
+  const decoded = decodeFxStatusWire(stdout);
+  if (Option.isNone(decoded)) {
     return { login: { _tag: "Unknown" }, defaultModel: undefined };
   }
-  if (!isRecord(parsed)) {
-    return { login: { _tag: "Unknown" }, defaultModel: undefined };
-  }
-  const defaultModel = nonEmptyUnknownString(parsed.model);
-  const auth = nonEmptyUnknownString(parsed.auth);
+  const defaultModel = nonEmptyTrimmed(decoded.value.model);
+  const auth = nonEmptyTrimmed(decoded.value.auth);
   if (auth === "missing") {
     return {
       login: {
         _tag: "SignedOut",
-        help: nonEmptyUnknownString(parsed.auth_help) ?? SIGNED_OUT_HELP,
+        help: nonEmptyTrimmed(decoded.value.auth_help) ?? SIGNED_OUT_HELP,
       },
       defaultModel,
     };

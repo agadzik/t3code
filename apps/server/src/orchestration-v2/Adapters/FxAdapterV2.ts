@@ -23,10 +23,18 @@ import {
 
 export const FxProviderCapabilitiesV2 = {
   ...AcpProviderCapabilitiesV2,
-  sessions: { ...AcpProviderCapabilitiesV2.sessions, supportsModelSwitchInSession: true },
+  sessions: {
+    ...AcpProviderCapabilitiesV2.sessions,
+    supportsModelSwitchInSession: true,
+    supportsRuntimeModeSwitchInSession: false,
+  },
   threads: { ...AcpProviderCapabilitiesV2.threads, canReadThreadSnapshot: true },
   tools: { ...AcpProviderCapabilitiesV2.tools, supportsMcpTools: true },
   checkpointing: { ...AcpProviderCapabilitiesV2.checkpointing, providerCanReadConversationSnapshot: true },
+  turns: {
+    ...AcpProviderCapabilitiesV2.turns,
+    supportsActiveSteering: false,
+  },
 } satisfies OrchestrationV2ProviderCapabilities;
 
 export interface FxAdapterV2Options {

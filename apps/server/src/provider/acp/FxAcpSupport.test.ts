@@ -14,7 +14,9 @@ import {
   buildFxAcpSpawnInput,
   FX_DEFAULT_MODEL_SLUG,
   FX_EFFORT_OPTION_DESCRIPTOR,
+  FX_FALLBACK_RUNTIME_MODE,
   FX_MODEL_CONFIG_ID,
+  FX_SUPPORTED_RUNTIME_MODES,
   fxPermissionDisposition,
   fxSessionModeForPolicy,
 } from "./FxAcpSupport.ts";
@@ -73,6 +75,10 @@ function makeRecordingRuntime(
 }
 
 describe("fx session mode", () => {
+  it("lists the fallback mode first", () => {
+    expect(FX_SUPPORTED_RUNTIME_MODES[0]).toBe(FX_FALLBACK_RUNTIME_MODE);
+  });
+
   it("maps each offered T3 mode onto fx ask or code", () => {
     expect(fxSessionModeForPolicy(runtimePolicy("approval-required"))).toBe("ask");
     expect(fxSessionModeForPolicy(runtimePolicy("auto-accept-edits"))).toBe("ask");

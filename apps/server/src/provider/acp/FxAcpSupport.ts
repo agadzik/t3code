@@ -24,8 +24,10 @@ export const FX_EFFORT_CONFIG_ID = "effort";
 
 export type FxSessionMode = "ask" | "code";
 
+export const FX_FALLBACK_RUNTIME_MODE = "approval-required" as const satisfies RuntimeMode;
+
 export const FX_SUPPORTED_RUNTIME_MODES = [
-  "approval-required",
+  FX_FALLBACK_RUNTIME_MODE,
   "auto-accept-edits",
   "auto",
 ] as const satisfies ReadonlyArray<RuntimeMode>;
@@ -74,7 +76,7 @@ export function fxRuntimeModeOf(policy: ProviderAdapter.ProviderAdapterV2Runtime
   for (const supported of FX_SUPPORTED_RUNTIME_MODES) {
     if (mode === supported) return supported;
   }
-  return "approval-required";
+  return FX_FALLBACK_RUNTIME_MODE;
 }
 
 export function fxSessionModeForPolicy(
@@ -91,7 +93,8 @@ export function fxPermissionDisposition(
   request: EffectAcpSchema.RequestPermissionRequest,
 ): AcpPermissionDisposition {
   const mode = fxRuntimeModeOf(policy);
-  if (mode === "auto" && fxSessionModeForPolicy(policy) === "code") {
+  const fxAlreadyApprovedRoutineActions = mode === "auto" && fxSessionModeForPolicy(policy) === "code";
+  if (fxAlreadyApprovedRoutineActions) {
     return "ask";
   }
   return acpPermissionDisposition({ ...policy, runtimeMode: mode }, request);

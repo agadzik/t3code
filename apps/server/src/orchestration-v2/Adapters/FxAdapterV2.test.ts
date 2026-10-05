@@ -4,7 +4,7 @@ import * as NodePath from "node:path";
 import * as NodeURL from "node:url";
 
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { describe, it } from "@effect/vitest";
+import { describe, expect, it } from "@effect/vitest";
 import { FxSettings, ProviderInstanceId, ProviderSessionId, ThreadId } from "@t3tools/contracts";
 import { resolveSelfInvocation } from "@t3tools/shared/nodeRuntime";
 import * as Crypto from "effect/Crypto";
@@ -25,7 +25,7 @@ import {
   makeAcpReplayCompletenessAssertion,
   makeAcpReplayRuntime,
 } from "./AcpAdapterV2.testkit.ts";
-import { makeFxAdapterV2 } from "./FxAdapterV2.ts";
+import { FxProviderCapabilitiesV2, makeFxAdapterV2 } from "./FxAdapterV2.ts";
 
 const decodeFxSettings = Schema.decodeSync(FxSettings);
 const recordedConfigOptions = JSON.parse(
@@ -74,6 +74,11 @@ const initializeResult = {
 };
 
 describe("FxAdapterV2", () => {
+  it("does not switch runtime mode or steer in session", () => {
+    expect(FxProviderCapabilitiesV2.sessions.supportsRuntimeModeSwitchInSession).toBe(false);
+    expect(FxProviderCapabilitiesV2.turns.supportsActiveSteering).toBe(false);
+  });
+
   const openReplay = Effect.fn("openFxReplay")(function* (input: {
     readonly scenario: string;
     readonly entries: ReadonlyArray<Frame>;
