@@ -287,6 +287,51 @@ describe("FxAdapterV2", () => {
     }).pipe(Effect.provide(testLayer), Effect.scoped),
   );
 
+  it.effect("writes effort medium on resume when the selection has no effort", () =>
+    openReplay({
+      scenario: "fx-session-load-default-effort",
+      initialNativeThreadId: "fx-session",
+      options: [],
+      entries: [
+        outbound("initialize"),
+        answer("initialize", initializeResult),
+        outbound("session/load"),
+        answer("session/load", {
+          sessionId: "fx-session",
+          configOptions: withCurrent("effort", "high"),
+        }),
+        outbound("session/set_config_option", {
+          sessionId: "fx-session",
+          configId: "model",
+          value: "anthropic/claude-sonnet-5.5",
+        }),
+        answer("session/set_config_option", {
+          configOptions: withCurrent("model", "anthropic/claude-sonnet-5.5", withCurrent("effort", "high")),
+        }),
+        outbound("session/set_config_option", {
+          sessionId: "fx-session",
+          configId: "effort",
+          value: "medium",
+        }),
+        answer("session/set_config_option", {
+          configOptions: withCurrent(
+            "effort",
+            "medium",
+            withCurrent("model", "anthropic/claude-sonnet-5.5", withCurrent("effort", "high")),
+          ),
+        }),
+        outbound("session/set_config_option", {
+          sessionId: "fx-session",
+          configId: "mode",
+          value: "code",
+        }),
+        answer("session/set_config_option", {
+          configOptions: withCurrent("mode", "code"),
+        }),
+      ],
+    }).pipe(Effect.provide(testLayer), Effect.scoped),
+  );
+
   it.effect("loads a resumed session with session/load", () =>
     openReplay({
       scenario: "fx-session-load",

@@ -21,7 +21,7 @@ Every fx instance on the same machine shares that machine's fx login. T3 Code do
 
 The model picker lists **Default** first. That option keeps the model fx is already configured to run. Other ids come from `fx models`.
 
-fx also exposes an **Effort** control. A new thread runs at Medium. T3 Code does not show fx's backend selector. To use Codex, Grok, or Vercel AI Gateway, run `fx provider` on the environment's machine.
+fx also exposes an **Effort** control. Effort starts at Medium, and T3 Code remembers the level you pick for your next thread. T3 Code does not show fx's backend selector. To use Codex, Grok, or Vercel AI Gateway, run `fx provider` on the environment's machine.
 
 ## Permission modes
 

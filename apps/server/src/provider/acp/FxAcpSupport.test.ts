@@ -10,9 +10,11 @@ import type * as EffectAcpSchema from "effect-acp/compat";
 
 import { ProviderAdapterV2RuntimePolicy } from "../../orchestration-v2/ProviderAdapter.ts";
 import {
+  applyFxEffortSelection,
   applyFxModelSelection,
   buildFxAcpSpawnInput,
   FX_DEFAULT_MODEL_SLUG,
+  FX_EFFORT_CONFIG_ID,
   FX_EFFORT_OPTION_DESCRIPTOR,
   FX_FALLBACK_RUNTIME_MODE,
   FX_MODEL_CONFIG_ID,
@@ -202,6 +204,44 @@ describe("applyFxModelSelection", () => {
         fxDefaultModel: "anthropic/claude-opus-5.5",
       });
       expect(result).toBe("anthropic/claude-opus-5.5");
+      expect(writes).toEqual([]);
+    }),
+  );
+});
+
+describe("applyFxEffortSelection", () => {
+  it.effect("writes medium when the selection has no effort", () =>
+    Effect.gen(function* () {
+      const { runtime, writes } = makeRecordingRuntime();
+      yield* applyFxEffortSelection({ runtime, requestedEffort: undefined });
+      expect(writes).toEqual([{ configId: FX_EFFORT_CONFIG_ID, value: "medium" }]);
+    }),
+  );
+
+  it.effect("writes nothing when live effort is already medium", () =>
+    Effect.gen(function* () {
+      const { runtime, writes } = makeRecordingRuntime(
+        recordedConfigOptions.map((option) =>
+          option.id === "effort" && option.type === "select" ? { ...option, currentValue: "medium" } : option,
+        ),
+      );
+      yield* applyFxEffortSelection({ runtime, requestedEffort: undefined });
+      expect(writes).toEqual([]);
+    }),
+  );
+
+  it.effect("writes nothing when the live session does not advertise medium", () =>
+    Effect.gen(function* () {
+      const { runtime, writes } = makeRecordingRuntime(
+        recordedConfigOptions.map((option) => {
+          if (option.id !== "effort" || option.type !== "select") return option;
+          return {
+            ...option,
+            options: option.options.filter((entry) => !("value" in entry) || entry.value !== "medium"),
+          };
+        }),
+      );
+      yield* applyFxEffortSelection({ runtime, requestedEffort: undefined });
       expect(writes).toEqual([]);
     }),
   );
