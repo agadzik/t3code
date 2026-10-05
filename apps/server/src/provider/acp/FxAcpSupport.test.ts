@@ -88,6 +88,12 @@ describe("fx session mode", () => {
     expect(fxPermissionDisposition(runtimePolicy("approval-required"), read)).toBe("allow");
   });
 
+  it("allows edit-kind requests under auto-accept-edits", () => {
+    expect(fxPermissionDisposition(runtimePolicy("auto-accept-edits"), permissionRequest("edit"))).toBe(
+      "allow",
+    );
+  });
+
   it("leaves Auto prompts to the user unless an explicit policy forced ask", () => {
     expect(fxPermissionDisposition(runtimePolicy("auto"), permissionRequest("read"))).toBe("ask");
     expect(fxPermissionDisposition(runtimePolicy("auto"), permissionRequest("edit"))).toBe("ask");
@@ -148,6 +154,19 @@ describe("applyFxModelSelection", () => {
       });
       expect(result).toBe("anthropic/claude-sonnet-5.5");
       expect(writes).toEqual([{ configId: "model", value: "anthropic/claude-sonnet-5.5" }]);
+    }),
+  );
+
+  it.effect("writes nothing when Default has no probed model", () =>
+    Effect.gen(function* () {
+      const { runtime, writes } = makeRecordingRuntime();
+      const result = yield* applyFxModelSelection({
+        runtime,
+        requestedModel: FX_DEFAULT_MODEL_SLUG,
+        fxDefaultModel: undefined,
+      });
+      expect(result).toBe("anthropic/claude-opus-5.5");
+      expect(writes).toEqual([]);
     }),
   );
 

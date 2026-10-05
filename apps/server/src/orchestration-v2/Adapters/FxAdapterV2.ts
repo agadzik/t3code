@@ -76,18 +76,25 @@ export function makeFxAcpAdapterFlavor(options: FxAdapterV2Options): AcpAdapterV
   };
 }
 
-export function makeFxAdapterV2(options: FxAdapterV2Options) {
-  return makeAcpAdapterV2({
-    instanceId: options.instanceId,
-    flavor: makeFxAcpAdapterFlavor(options),
-    crypto: options.crypto,
-    fileSystem: options.fileSystem,
-    idAllocator: options.idAllocator,
-    serverConfig: options.serverConfig,
-    selfInvocation: options.selfInvocation,
-    ...(options.nativeLogging === undefined ? {} : { nativeLogging: options.nativeLogging }),
-    ...(options.continuationRequests === undefined
-      ? {}
-      : { continuationRequests: options.continuationRequests }),
-  });
+export type FxAdapterV2 = ReturnType<typeof makeAcpAdapterV2> & {
+  readonly currentFxDefaultModel: Effect.Effect<string | undefined>;
+};
+
+export function makeFxAdapterV2(options: FxAdapterV2Options): FxAdapterV2 {
+  return {
+    ...makeAcpAdapterV2({
+      instanceId: options.instanceId,
+      flavor: makeFxAcpAdapterFlavor(options),
+      crypto: options.crypto,
+      fileSystem: options.fileSystem,
+      idAllocator: options.idAllocator,
+      serverConfig: options.serverConfig,
+      selfInvocation: options.selfInvocation,
+      ...(options.nativeLogging === undefined ? {} : { nativeLogging: options.nativeLogging }),
+      ...(options.continuationRequests === undefined
+        ? {}
+        : { continuationRequests: options.continuationRequests }),
+    }),
+    currentFxDefaultModel: options.currentFxDefaultModel,
+  };
 }
