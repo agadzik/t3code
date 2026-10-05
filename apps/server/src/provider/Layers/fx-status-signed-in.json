@@ -1,0 +1,6 @@
+{
+  "kind": "status",
+  "model": "anthropic/claude-opus-5.5",
+  "auth": "fx login",
+  "auth_refreshable": true
+}
