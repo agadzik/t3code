@@ -114,13 +114,18 @@ describe("fx session mode", () => {
 });
 
 describe("FX_EFFORT_OPTION_DESCRIPTOR", () => {
-  it("marks default as the default effort", () => {
-    const choice =
-      FX_EFFORT_OPTION_DESCRIPTOR.type === "select"
-        ? FX_EFFORT_OPTION_DESCRIPTOR.options.find((option) => option.isDefault)
-        : undefined;
-    expect(choice?.id).toBe("default");
-    expect(choice?.label).toBe("fx setting");
+  it("lists six effort levels with medium as default", () => {
+    expect(FX_EFFORT_OPTION_DESCRIPTOR.type).toBe("select");
+    if (FX_EFFORT_OPTION_DESCRIPTOR.type !== "select") return;
+    expect(FX_EFFORT_OPTION_DESCRIPTOR.options.map((option) => option.id)).toEqual([
+      "auto",
+      "low",
+      "medium",
+      "high",
+      "xhigh",
+      "max",
+    ]);
+    expect(FX_EFFORT_OPTION_DESCRIPTOR.options.find((option) => option.isDefault)?.id).toBe("medium");
   });
 });
 

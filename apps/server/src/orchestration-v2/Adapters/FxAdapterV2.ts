@@ -7,8 +7,10 @@ import { ChildProcessSpawner } from "effect/unstable/process";
 
 import * as ServerConfig from "../../config.ts";
 import {
+  applyFxEffortSelection,
   applyFxModelSelection,
   FX_DRIVER_KIND,
+  FX_EFFORT_CONFIG_ID,
   fxPermissionDisposition,
   fxSessionModeForPolicy,
   makeFxAcpRuntime,
@@ -68,9 +70,20 @@ export function makeFxAcpAdapterFlavor(options: FxAdapterV2Options): AcpAdapterV
           childProcessSpawner: options.childProcessSpawner,
         })),
     applyModelSelection: ({ runtime, modelSelection }) =>
-      Effect.flatMap(options.currentFxDefaultModel, (fxDefaultModel) =>
-        applyFxModelSelection({ runtime, requestedModel: modelSelection.model, fxDefaultModel }),
-      ),
+      Effect.gen(function* () {
+        const fxDefaultModel = yield* options.currentFxDefaultModel;
+        const applied = yield* applyFxModelSelection({
+          runtime,
+          requestedModel: modelSelection.model,
+          fxDefaultModel,
+        });
+        yield* applyFxEffortSelection({
+          runtime,
+          requestedEffort: modelSelection.options?.find((option) => option.id === FX_EFFORT_CONFIG_ID)
+            ?.value,
+        });
+        return applied;
+      }),
     sessionModeForPolicy: fxSessionModeForPolicy,
     permissionDisposition: fxPermissionDisposition,
   };

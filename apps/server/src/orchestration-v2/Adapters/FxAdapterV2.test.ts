@@ -56,8 +56,9 @@ const answer = (method: string, result: unknown): Frame => ({
 function withCurrent(
   configId: string,
   value: string,
+  base: ReadonlyArray<EffectAcpSchema.SessionConfigOption> = recordedConfigOptions,
 ): ReadonlyArray<EffectAcpSchema.SessionConfigOption> {
-  return recordedConfigOptions.map((option) =>
+  return base.map((option) =>
     option.id === configId && option.type === "select" ? { ...option, currentValue: value } : option,
   );
 }
@@ -180,9 +181,78 @@ describe("FxAdapterV2", () => {
     }).pipe(Effect.provide(testLayer), Effect.scoped),
   );
 
-  it.effect("sends no effort write when Default is selected", () =>
+  it.effect("writes effort medium when the selection has no effort", () =>
     openReplay({
       scenario: "fx-session-new-default-effort",
+      options: [],
+      entries: [
+        outbound("initialize"),
+        answer("initialize", initializeResult),
+        outbound("session/new"),
+        answer("session/new", { sessionId: "fx-session", configOptions: recordedConfigOptions }),
+        outbound("session/set_config_option", {
+          sessionId: "fx-session",
+          configId: "model",
+          value: "anthropic/claude-sonnet-5.5",
+        }),
+        answer("session/set_config_option", {
+          configOptions: withCurrent("model", "anthropic/claude-sonnet-5.5"),
+        }),
+        outbound("session/set_config_option", {
+          sessionId: "fx-session",
+          configId: "effort",
+          value: "medium",
+        }),
+        answer("session/set_config_option", {
+          configOptions: withCurrent("effort", "medium", withCurrent("model", "anthropic/claude-sonnet-5.5")),
+        }),
+        outbound("session/set_config_option", {
+          sessionId: "fx-session",
+          configId: "mode",
+          value: "code",
+        }),
+        answer("session/set_config_option", {
+          configOptions: withCurrent("mode", "code"),
+        }),
+      ],
+    }).pipe(Effect.provide(testLayer), Effect.scoped),
+  );
+
+  it.effect("writes nothing when live effort is already medium", () =>
+    openReplay({
+      scenario: "fx-session-new-live-medium-effort",
+      options: [],
+      entries: [
+        outbound("initialize"),
+        answer("initialize", initializeResult),
+        outbound("session/new"),
+        answer("session/new", {
+          sessionId: "fx-session",
+          configOptions: withCurrent("effort", "medium"),
+        }),
+        outbound("session/set_config_option", {
+          sessionId: "fx-session",
+          configId: "model",
+          value: "anthropic/claude-sonnet-5.5",
+        }),
+        answer("session/set_config_option", {
+          configOptions: withCurrent("model", "anthropic/claude-sonnet-5.5", withCurrent("effort", "medium")),
+        }),
+        outbound("session/set_config_option", {
+          sessionId: "fx-session",
+          configId: "mode",
+          value: "code",
+        }),
+        answer("session/set_config_option", {
+          configOptions: withCurrent("mode", "code", withCurrent("effort", "medium")),
+        }),
+      ],
+    }).pipe(Effect.provide(testLayer), Effect.scoped),
+  );
+
+  it.effect("writes effort medium for a stale stored default", () =>
+    openReplay({
+      scenario: "fx-session-new-stale-default-effort",
       options: [{ id: "effort", value: "default" }],
       entries: [
         outbound("initialize"),
@@ -196,6 +266,14 @@ describe("FxAdapterV2", () => {
         }),
         answer("session/set_config_option", {
           configOptions: withCurrent("model", "anthropic/claude-sonnet-5.5"),
+        }),
+        outbound("session/set_config_option", {
+          sessionId: "fx-session",
+          configId: "effort",
+          value: "medium",
+        }),
+        answer("session/set_config_option", {
+          configOptions: withCurrent("effort", "medium", withCurrent("model", "anthropic/claude-sonnet-5.5")),
         }),
         outbound("session/set_config_option", {
           sessionId: "fx-session",

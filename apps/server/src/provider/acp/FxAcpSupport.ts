@@ -21,6 +21,13 @@ export const FX_DRIVER_KIND = ProviderDriverKind.make("fx");
 export const FX_DEFAULT_MODEL_SLUG = "default";
 export const FX_MODEL_CONFIG_ID = "model";
 export const FX_EFFORT_CONFIG_ID = "effort";
+export const FX_DEFAULT_EFFORT = "medium";
+export const FX_EFFORT_LEVELS = ["auto", "low", "medium", "high", "xhigh", "max"] as const;
+export type FxEffortLevel = (typeof FX_EFFORT_LEVELS)[number];
+
+function isFxEffortLevel(value: unknown): value is FxEffortLevel {
+  return typeof value === "string" && (FX_EFFORT_LEVELS as ReadonlyArray<string>).includes(value);
+}
 
 export type FxSessionMode = "ask" | "code";
 
@@ -44,10 +51,9 @@ export const FX_EFFORT_OPTION_DESCRIPTOR: ProviderOptionDescriptor = {
   label: "Effort",
   type: "select",
   options: [
-    { id: "default", label: "fx setting", isDefault: true },
     { id: "auto", label: "Auto" },
     { id: "low", label: "Low" },
-    { id: "medium", label: "Medium" },
+    { id: "medium", label: "Medium", isDefault: true },
     { id: "high", label: "High" },
     { id: "xhigh", label: "Extra High" },
     { id: "max", label: "Max" },
@@ -132,6 +138,31 @@ export const applyFxModelSelection = (input: {
     }
     yield* input.runtime.setConfigOption(FX_MODEL_CONFIG_ID, target);
     return target;
+  });
+
+export const applyFxEffortSelection = (input: {
+  readonly runtime: Pick<
+    AcpSessionRuntime.AcpSessionRuntime["Service"],
+    "getConfigOptions" | "setConfigOption"
+  >;
+  readonly requestedEffort: unknown;
+}): Effect.Effect<string | undefined, EffectAcpErrors.AcpError> =>
+  Effect.gen(function* () {
+    if (isFxEffortLevel(input.requestedEffort)) {
+      return undefined;
+    }
+    const options = yield* input.runtime.getConfigOptions;
+    const option = options.find((entry) => entry.id === FX_EFFORT_CONFIG_ID && entry.type === "select");
+    const current = option?.type === "select" ? option.currentValue : undefined;
+    if (current === FX_DEFAULT_EFFORT) {
+      return current;
+    }
+    const advertised = option === undefined ? [] : collectSessionConfigOptionValues(option);
+    if (!advertised.includes(FX_DEFAULT_EFFORT)) {
+      return current;
+    }
+    yield* input.runtime.setConfigOption(FX_EFFORT_CONFIG_ID, FX_DEFAULT_EFFORT);
+    return FX_DEFAULT_EFFORT;
   });
 
 /** fx docs: wait for the prompt response even after cancel. */
