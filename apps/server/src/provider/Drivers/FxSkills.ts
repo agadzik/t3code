@@ -3,7 +3,8 @@
  *
  * fx has no skills CLI. Roots are workspace nearest-first, then user roots.
  * When two skills share a name, the first root in that order wins. fx's docs
- * do not define precedence; this is that choice.
+ * do not define precedence; this is that choice. One bad root or entry is
+ * skipped so it cannot empty the catalog.
  *
  * @module provider/Drivers/FxSkills
  */
@@ -13,7 +14,7 @@ import type { ServerProviderSkill } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
-import * as Schema from "effect/Schema";
+import type * as PlatformError from "effect/PlatformError";
 import { parse as parseYamlDocument } from "yaml";
 
 const FRONTMATTER_PATTERN = /^---\r?\n([\s\S]*?)\r?\n---(?:\r?\n|$)/;
@@ -37,15 +38,6 @@ const USER_SKILL_RELATIVE_ROOTS = [
   ".agents/skills",
   ".claw/skills",
 ] as const;
-
-export class FxSkillsProbeError extends Schema.TaggedError<FxSkillsProbeError>()("FxSkillsProbeError", {
-  path: Schema.String,
-  cause: Schema.optional(Schema.Defect()),
-}) {
-  override get message(): string {
-    return `fx could not read skills at '${this.path}'.`;
-  }
-}
 
 function parseFxSkillFrontmatter(contents: string): {
   readonly name?: string;
@@ -102,61 +94,50 @@ function userSkillDirectories(path: Path.Path, home: string): ReadonlyArray<stri
   return USER_SKILL_RELATIVE_ROOTS.map((relative) => path.join(home, relative));
 }
 
-const readDirectoryIfPresent = (directory: string) =>
-  Effect.gen(function* () {
-    const fileSystem = yield* FileSystem.FileSystem;
-    return yield* fileSystem.readDirectory(directory).pipe(
-      Effect.catchTags({
-        PlatformError: (error) =>
-          error.reason._tag === "NotFound"
-            ? Effect.succeed<ReadonlyArray<string>>([])
-            : Effect.fail(new FxSkillsProbeError({ path: directory, cause: error })),
-      }),
-    );
-  });
-
-const readSkillFileIfPresent = (skillPath: string) =>
-  Effect.gen(function* () {
-    const fileSystem = yield* FileSystem.FileSystem;
-    const info = yield* fileSystem.stat(skillPath).pipe(
-      Effect.catchTags({
-        PlatformError: (error) =>
-          error.reason._tag === "NotFound"
-            ? Effect.succeed(undefined)
-            : Effect.fail(new FxSkillsProbeError({ path: skillPath, cause: error })),
-      }),
-    );
-    if (info === undefined || info.type !== "File" || info.size > MAX_SKILL_BYTES) {
-      return undefined;
-    }
-    return yield* fileSystem.readFileString(skillPath).pipe(
-      Effect.catchTags({
-        PlatformError: (error) =>
-          error.reason._tag === "NotFound"
-            ? Effect.succeed(undefined)
-            : Effect.fail(new FxSkillsProbeError({ path: skillPath, cause: error })),
-      }),
-    );
-  });
+const skipPath = <A, R>(
+  path: string,
+  effect: Effect.Effect<A, PlatformError.PlatformError, R>,
+): Effect.Effect<A | undefined, never, R> =>
+  effect.pipe(
+    Effect.catchTags({
+      PlatformError: (error) =>
+        error.reason._tag === "NotFound"
+          ? Effect.succeed(undefined)
+          : Effect.logWarning("fx skill scan skipped a path", { path }).pipe(Effect.as(undefined)),
+    }),
+  );
 
 const discoverSkillsInRoot = Effect.fn("discoverFxSkillsInRoot")(function* (input: {
   readonly directory: string;
   readonly scope: "project" | "user";
-}): Effect.fn.Return<
-  ReadonlyArray<ServerProviderSkill>,
-  FxSkillsProbeError,
-  FileSystem.FileSystem | Path.Path
-> {
+}): Effect.fn.Return<ReadonlyArray<ServerProviderSkill>, never, FileSystem.FileSystem | Path.Path> {
+  const fileSystem = yield* FileSystem.FileSystem;
   const path = yield* Path.Path;
-  const entries = yield* readDirectoryIfPresent(input.directory);
+  const rootInfo = yield* skipPath(input.directory, fileSystem.stat(input.directory));
+  if (rootInfo?.type !== "Directory") {
+    return [];
+  }
+  const entries = yield* skipPath(input.directory, fileSystem.readDirectory(input.directory));
+  if (entries === undefined) {
+    return [];
+  }
   const skills: Array<ServerProviderSkill> = [];
   for (const entry of entries) {
     const directoryName = entry.trim();
     if (!directoryName) {
       continue;
     }
-    const skillPath = path.join(input.directory, directoryName, "SKILL.md");
-    const contents = yield* readSkillFileIfPresent(skillPath);
+    const candidate = path.join(input.directory, directoryName);
+    const candidateInfo = yield* skipPath(candidate, fileSystem.stat(candidate));
+    if (candidateInfo?.type !== "Directory") {
+      continue;
+    }
+    const skillPath = path.join(candidate, "SKILL.md");
+    const skillInfo = yield* skipPath(skillPath, fileSystem.stat(skillPath));
+    if (skillInfo?.type !== "File" || skillInfo.size > MAX_SKILL_BYTES) {
+      continue;
+    }
+    const contents = yield* skipPath(skillPath, fileSystem.readFileString(skillPath));
     if (contents === undefined) {
       continue;
     }
@@ -176,11 +157,7 @@ const discoverSkillsInRoot = Effect.fn("discoverFxSkillsInRoot")(function* (inpu
 export const discoverFxSkills = Effect.fn("discoverFxSkills")(function* (input: {
   readonly cwd?: string;
   readonly environment?: NodeJS.ProcessEnv;
-}): Effect.fn.Return<
-  ReadonlyArray<ServerProviderSkill>,
-  FxSkillsProbeError,
-  FileSystem.FileSystem | Path.Path
-> {
+}): Effect.fn.Return<ReadonlyArray<ServerProviderSkill>, never, FileSystem.FileSystem | Path.Path> {
   const path = yield* Path.Path;
   const environment = input.environment ?? process.env;
   const home = path.resolve(resolveFxUserHome(environment));

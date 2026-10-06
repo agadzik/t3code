@@ -171,9 +171,7 @@ export const FxDriver: ProviderDriver<FxSettings, FxDriverEnv> = {
         Effect.bindTo("probe"),
         Effect.bind("skills", () =>
           effectiveConfig.enabled
-            ? provideSkillDiscovery(discoverFxSkills({ environment: processEnv })).pipe(
-                Effect.orElseSucceed((): ReadonlyArray<never> => []),
-              )
+            ? provideSkillDiscovery(discoverFxSkills({ environment: processEnv }))
             : Effect.succeed([]),
         ),
         Effect.map(({ probe, skills }) => stampIdentity({ ...probe.draft, skills })),
@@ -218,17 +216,7 @@ export const FxDriver: ProviderDriver<FxSettings, FxDriverEnv> = {
           ? snapshot.getSnapshot
           : Effect.all([
               snapshot.getSnapshot,
-              provideSkillDiscovery(discoverFxSkills({ cwd: workspaceCwd, environment: processEnv })).pipe(
-                Effect.mapError(
-                  (cause) =>
-                    new ProviderDriverError({
-                      driver: FX_DRIVER_KIND,
-                      instanceId,
-                      detail: `Failed to discover fx skills for '${workspaceCwd}'`,
-                      cause,
-                    }),
-                ),
-              ),
+              provideSkillDiscovery(discoverFxSkills({ cwd: workspaceCwd, environment: processEnv })),
             ]).pipe(Effect.map(([machineSnapshot, skills]) => ({ ...machineSnapshot, skills })));
 
       return {

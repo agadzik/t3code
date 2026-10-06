@@ -188,4 +188,69 @@ it.layer(NodeServices.layer)("discoverFxSkills", (it) => {
       expect(skills).toEqual([]);
     }).pipe(Effect.scoped),
   );
+
+  it.effect("ignores stray files in a skills root and still lists real skills", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const tempDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-fx-skills-" });
+      const home = path.join(tempDir, "home");
+      const skillsRoot = path.join(home, ".fx", "skills");
+      yield* fs.makeDirectory(skillsRoot, { recursive: true });
+      yield* fs.writeFileString(path.join(skillsRoot, ".DS_Store"), "not a skill");
+      yield* fs.writeFileString(path.join(skillsRoot, "README.md"), "# skills");
+      yield* writeSkill(
+        skillsRoot,
+        "review",
+        ["---", "name: review", "description: Review the diff.", "---"].join("\n"),
+      );
+
+      const skills = yield* discoverFxSkills({ environment: { HOME: home } });
+
+      expect(skills.map((skill) => skill.name)).toEqual(["review"]);
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect("ignores a workspace skills path that is a file and still lists user skills", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const tempDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-fx-skills-" });
+      const home = path.join(tempDir, "home");
+      const workspace = path.join(home, "project");
+      yield* fs.makeDirectory(workspace, { recursive: true });
+      yield* fs.writeFileString(path.join(workspace, "skills"), "not a directory");
+      yield* writeSkill(
+        path.join(home, ".fx", "skills"),
+        "deploy",
+        ["---", "name: deploy", "description: Deploy the app.", "---"].join("\n"),
+      );
+
+      const skills = yield* discoverFxSkills({
+        cwd: workspace,
+        environment: { HOME: home },
+      });
+
+      expect(skills.map((skill) => skill.name)).toEqual(["deploy"]);
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect("ignores a skill directory without SKILL.md", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const tempDir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-fx-skills-" });
+      const home = path.join(tempDir, "home");
+      yield* fs.makeDirectory(path.join(home, ".fx", "skills", "empty"), { recursive: true });
+      yield* writeSkill(
+        path.join(home, ".fx", "skills"),
+        "review",
+        ["---", "name: review", "description: Review the diff.", "---"].join("\n"),
+      );
+
+      const skills = yield* discoverFxSkills({ environment: { HOME: home } });
+
+      expect(skills.map((skill) => skill.name)).toEqual(["review"]);
+    }).pipe(Effect.scoped),
+  );
 });
