@@ -23,6 +23,8 @@ The model picker lists **Default** first. That option keeps the model fx is alre
 
 fx also exposes an **Effort** control. Effort starts at Medium, and T3 Code remembers the level you pick for your next thread. T3 Code does not show fx's backend selector. To use Codex, Grok, or Vercel AI Gateway, run `fx provider` on the environment's machine.
 
+Type `$` in the composer to list fx skills from fx's skill folders.
+
 ## Permission modes
 
 fx offers three composer modes:

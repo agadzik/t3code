@@ -30,6 +30,7 @@ import {
   type ProviderDriver,
   type ProviderInstance,
 } from "../ProviderDriver.ts";
+import { discoverFxSkills } from "./FxSkills.ts";
 import { withInstanceIdentity } from "./instanceIdentity.ts";
 import { mergeProviderInstanceEnvironment } from "../ProviderInstanceEnvironment.ts";
 import * as IdAllocator from "../../orchestration-v2/IdAllocator.ts";
@@ -157,9 +158,25 @@ export const FxDriver: ProviderDriver<FxSettings, FxDriverEnv> = {
         "fx does not provide application text generation yet.",
       );
 
+      const provideSkillDiscovery = <A, E, R>(
+        effect: Effect.Effect<A, E, R | FileSystem.FileSystem | Path.Path>,
+      ) =>
+        effect.pipe(
+          Effect.provideService(FileSystem.FileSystem, fileSystem),
+          Effect.provideService(Path.Path, path),
+        );
+
       const checkProvider = checkFxProviderStatus(effectiveConfig, processEnv).pipe(
         Effect.tap((probe) => Ref.set(currentFxDefaultModelRef, probe.defaultModel)),
-        Effect.map((probe) => stampIdentity(probe.draft)),
+        Effect.bindTo("probe"),
+        Effect.bind("skills", () =>
+          effectiveConfig.enabled
+            ? provideSkillDiscovery(discoverFxSkills({ environment: processEnv })).pipe(
+                Effect.orElseSucceed((): ReadonlyArray<never> => []),
+              )
+            : Effect.succeed([]),
+        ),
+        Effect.map(({ probe, skills }) => stampIdentity({ ...probe.draft, skills })),
         Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
       );
 
@@ -196,6 +213,24 @@ export const FxDriver: ProviderDriver<FxSettings, FxDriverEnv> = {
         ),
       );
 
+      const snapshotForCwd = (workspaceCwd: string) =>
+        !effectiveConfig.enabled
+          ? snapshot.getSnapshot
+          : Effect.all([
+              snapshot.getSnapshot,
+              provideSkillDiscovery(discoverFxSkills({ cwd: workspaceCwd, environment: processEnv })).pipe(
+                Effect.mapError(
+                  (cause) =>
+                    new ProviderDriverError({
+                      driver: FX_DRIVER_KIND,
+                      instanceId,
+                      detail: `Failed to discover fx skills for '${workspaceCwd}'`,
+                      cause,
+                    }),
+                ),
+              ),
+            ]).pipe(Effect.map(([machineSnapshot, skills]) => ({ ...machineSnapshot, skills })));
+
       return {
         instanceId,
         driverKind: FX_DRIVER_KIND,
@@ -204,6 +239,7 @@ export const FxDriver: ProviderDriver<FxSettings, FxDriverEnv> = {
         accentColor,
         enabled,
         snapshot,
+        snapshotForCwd,
         orchestrationAdapter,
         textGeneration,
       } satisfies ProviderInstance;

@@ -9,6 +9,7 @@ import { ProviderInstanceId } from "@t3tools/contracts";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
+import * as Path from "effect/Path";
 import { HttpClient } from "effect/unstable/http";
 
 import * as BackgroundPolicy from "../../background/BackgroundPolicy.ts";
@@ -89,6 +90,63 @@ it.layer(testLayer)("FxDriver", (it) => {
       expect(yield* (instance.orchestrationAdapter as FxAdapterV2).currentFxDefaultModel).toBe(
         "anthropic/claude-opus-5.5",
       );
+    }).pipe(Effect.scoped),
+  );
+
+  it.effect("lists discovered skills on the workspace snapshot", () =>
+    Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const path = yield* Path.Path;
+      const dir = yield* fs.makeTempDirectoryScoped({ prefix: "t3-fx-driver-skills-" });
+      const home = path.join(dir, "home");
+      const workspace = path.join(home, "project");
+      const skillDir = path.join(workspace, ".fx", "skills", "review");
+      yield* fs.makeDirectory(skillDir, { recursive: true });
+      yield* fs.writeFileString(
+        path.join(skillDir, "SKILL.md"),
+        ["---", "name: review", "description: Review the diff.", "---"].join("\n"),
+      );
+      const binaryPath = writeFakeCli({
+        directory: dir,
+        name: "fx",
+        source: [
+          "const args = process.argv.slice(2);",
+          'if (args[0] === "--version") {',
+          '  process.stdout.write("fx 0.0.13\\n");',
+          "  process.exit(0);",
+          "}",
+          'if (args[0] === "status" && args[1] === "--json") {',
+          `  process.stdout.write(${JSON.stringify(SIGNED_IN_STATUS)});`,
+          "  process.exit(0);",
+          "}",
+          'if (args[0] === "models" && args[1] === "--json") {',
+          `  process.stdout.write(${JSON.stringify(MODELS_JSON)});`,
+          "  process.exit(0);",
+          "}",
+          "process.exit(3);",
+          "",
+        ].join("\n"),
+      });
+
+      const instance = yield* FxDriver.create({
+        instanceId: ProviderInstanceId.make("fx-skills"),
+        displayName: "fx test",
+        enabled: true,
+        environment: [{ name: "HOME", value: home, sensitive: false }],
+        config: { ...FxDriver.defaultConfig(), enabled: true, binaryPath },
+      });
+
+      expect(instance.snapshotForCwd).toBeDefined();
+      const snapshot = yield* instance.snapshotForCwd!(workspace);
+      expect(snapshot.skills).toEqual([
+        {
+          name: "review",
+          path: path.join(skillDir, "SKILL.md"),
+          scope: "project",
+          enabled: true,
+          description: "Review the diff.",
+        },
+      ]);
     }).pipe(Effect.scoped),
   );
 });
