@@ -14,6 +14,7 @@ import {
   fxPermissionDisposition,
   fxSessionModeForPolicy,
   makeFxAcpRuntime,
+  withFxSessionModeAlwaysWritten,
 } from "../../provider/acp/FxAcpSupport.ts";
 import * as IdAllocator from "../IdAllocator.ts";
 import {
@@ -60,15 +61,15 @@ export function makeFxAcpAdapterFlavor(options: FxAdapterV2Options): AcpAdapterV
     driver: FX_DRIVER_KIND,
     runtimeHarness: "fx",
     capabilities: FxProviderCapabilitiesV2,
-    makeRuntime:
-      options.makeRuntime ??
-      (({ runtimePolicy: _runtimePolicy, ...input }: AcpAdapterV2RuntimeInput) =>
-        makeFxAcpRuntime({
-          ...input,
-          fxSettings: options.settings,
-          environment: options.environment,
-          childProcessSpawner: options.childProcessSpawner,
-        })),
+    makeRuntime: (input: AcpAdapterV2RuntimeInput) =>
+      (options.makeRuntime ??
+        (({ runtimePolicy: _runtimePolicy, ...runtimeInput }: AcpAdapterV2RuntimeInput) =>
+          makeFxAcpRuntime({
+            ...runtimeInput,
+            fxSettings: options.settings,
+            environment: options.environment,
+            childProcessSpawner: options.childProcessSpawner,
+          })))(input).pipe(Effect.map(withFxSessionModeAlwaysWritten)),
     applyModelSelection: ({ runtime, modelSelection }) =>
       Effect.gen(function* () {
         const fxDefaultModel = yield* options.currentFxDefaultModel;

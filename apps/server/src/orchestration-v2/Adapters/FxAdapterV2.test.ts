@@ -5,7 +5,13 @@ import * as NodeURL from "node:url";
 
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { describe, expect, it } from "@effect/vitest";
-import { FxSettings, ProviderInstanceId, ProviderSessionId, ThreadId } from "@t3tools/contracts";
+import {
+  FxSettings,
+  ProviderInstanceId,
+  ProviderSessionId,
+  type RuntimeMode,
+  ThreadId,
+} from "@t3tools/contracts";
 import { resolveSelfInvocation } from "@t3tools/shared/nodeRuntime";
 import * as Crypto from "effect/Crypto";
 import * as Effect from "effect/Effect";
@@ -84,6 +90,7 @@ describe("FxAdapterV2", () => {
     readonly scenario: string;
     readonly entries: ReadonlyArray<Frame>;
     readonly initialNativeThreadId?: string;
+    readonly runtimeMode?: RuntimeMode;
     readonly options?: ReadonlyArray<{ readonly id: string; readonly value: string }>;
   }) {
     const childProcessSpawner = yield* ChildProcessSpawner.ChildProcessSpawner;
@@ -133,7 +140,7 @@ describe("FxAdapterV2", () => {
           options: input.options ?? [{ id: "effort", value: "high" }],
         },
         runtimePolicy: ProviderAdapterV2RuntimePolicy.make({
-          runtimeMode: "auto",
+          runtimeMode: input.runtimeMode ?? "auto",
           interactionMode: "default",
           cwd: replayDir,
         }),
@@ -364,6 +371,113 @@ describe("FxAdapterV2", () => {
         }),
         answer("session/set_config_option", {
           configOptions: withCurrent("mode", "code"),
+        }),
+      ],
+    }).pipe(Effect.provide(testLayer), Effect.scoped),
+  );
+
+  it.effect("writes mode ask when a supervised thread reports ask", () =>
+    openReplay({
+      scenario: "fx-session-new-supervised-mode",
+      runtimeMode: "approval-required",
+      entries: [
+        outbound("initialize"),
+        answer("initialize", initializeResult),
+        outbound("session/new"),
+        answer("session/new", { sessionId: "fx-session", configOptions: recordedConfigOptions }),
+        outbound("session/set_config_option", {
+          sessionId: "fx-session",
+          configId: "model",
+          value: "anthropic/claude-sonnet-5.5",
+        }),
+        answer("session/set_config_option", {
+          configOptions: withCurrent("model", "anthropic/claude-sonnet-5.5"),
+        }),
+        outbound("session/set_config_option", {
+          sessionId: "fx-session",
+          configId: "effort",
+          value: "high",
+        }),
+        answer("session/set_config_option", {
+          configOptions: withCurrent("effort", "high"),
+        }),
+        outbound("session/set_config_option", {
+          sessionId: "fx-session",
+          configId: "mode",
+          value: "ask",
+        }),
+        answer("session/set_config_option", {
+          configOptions: withCurrent("mode", "ask"),
+        }),
+      ],
+    }).pipe(Effect.provide(testLayer), Effect.scoped),
+  );
+
+  it.effect("writes mode code when an auto thread reports ask", () =>
+    openReplay({
+      scenario: "fx-session-new-auto-reports-ask",
+      options: [],
+      entries: [
+        outbound("initialize"),
+        answer("initialize", initializeResult),
+        outbound("session/new"),
+        answer("session/new", {
+          sessionId: "fx-session",
+          configOptions: withCurrent("effort", "medium"),
+        }),
+        outbound("session/set_config_option", {
+          sessionId: "fx-session",
+          configId: "model",
+          value: "anthropic/claude-sonnet-5.5",
+        }),
+        answer("session/set_config_option", {
+          configOptions: withCurrent("model", "anthropic/claude-sonnet-5.5", withCurrent("effort", "medium")),
+        }),
+        outbound("session/set_config_option", {
+          sessionId: "fx-session",
+          configId: "mode",
+          value: "code",
+        }),
+        answer("session/set_config_option", {
+          configOptions: withCurrent("mode", "code", withCurrent("effort", "medium")),
+        }),
+      ],
+    }).pipe(Effect.provide(testLayer), Effect.scoped),
+  );
+
+  it.effect("writes mode ask on resume when a supervised thread reports ask", () =>
+    openReplay({
+      scenario: "fx-session-load-supervised-mode",
+      initialNativeThreadId: "fx-session",
+      runtimeMode: "approval-required",
+      entries: [
+        outbound("initialize"),
+        answer("initialize", initializeResult),
+        outbound("session/load"),
+        answer("session/load", { sessionId: "fx-session", configOptions: recordedConfigOptions }),
+        outbound("session/set_config_option", {
+          sessionId: "fx-session",
+          configId: "model",
+          value: "anthropic/claude-sonnet-5.5",
+        }),
+        answer("session/set_config_option", {
+          configOptions: withCurrent("model", "anthropic/claude-sonnet-5.5"),
+        }),
+        outbound("session/set_config_option", {
+          sessionId: "fx-session",
+          configId: "effort",
+          value: "high",
+        }),
+        answer("session/set_config_option", {
+          configOptions: withCurrent("effort", "high"),
+        }),
+        outbound("session/set_config_option", {
+          sessionId: "fx-session",
+          configId: "mode",
+          value: "ask",
+        }),
+        answer("session/set_config_option", {
+          configOptions: withCurrent("mode", "ask"),
         }),
       ],
     }).pipe(Effect.provide(testLayer), Effect.scoped),

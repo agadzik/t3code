@@ -20,6 +20,7 @@ import type * as ProviderAdapter from "../../orchestration-v2/ProviderAdapter.ts
 export const FX_DRIVER_KIND = ProviderDriverKind.make("fx");
 export const FX_DEFAULT_MODEL_SLUG = "default";
 export const FX_MODEL_CONFIG_ID = "model";
+export const FX_MODE_CONFIG_ID = "mode";
 export const FX_EFFORT_CONFIG_ID = "effort";
 export const FX_DEFAULT_EFFORT = "medium";
 export const FX_EFFORT_LEVELS = ["auto", "low", "medium", "high", "xhigh", "max"] as const;
@@ -92,6 +93,62 @@ export function fxSessionModeForPolicy(
     return "ask";
   }
   return FX_SESSION_MODE_BY_RUNTIME_MODE[fxRuntimeModeOf(policy)];
+}
+
+/**
+ * fx 0.0.13 reports `ask` on new sessions while enforcing its global default
+ * until a client writes the mode.
+ */
+export const applyFxSessionMode = (input: {
+  readonly runtime: Pick<AcpSessionRuntime.AcpSessionRuntime["Service"], "getModeState" | "setMode" | "request">;
+  readonly sessionId: string;
+  readonly mode: string;
+}): Effect.Effect<void, EffectAcpErrors.AcpError> =>
+  Effect.gen(function* () {
+    const current = yield* input.runtime.getModeState;
+    if (current?.currentModeId !== input.mode) {
+      yield* input.runtime.setMode(input.mode);
+      return;
+    }
+    yield* input.runtime.request("session/set_config_option", {
+      sessionId: input.sessionId,
+      configId: FX_MODE_CONFIG_ID,
+      value: input.mode,
+    });
+  });
+
+export function withFxSessionModeAlwaysWritten(
+  runtime: AcpSessionRuntime.AcpSessionRuntime["Service"],
+): AcpSessionRuntime.AcpSessionRuntime["Service"] {
+  const session = { id: undefined as string | undefined };
+  const captureSession = <A extends { readonly sessionId: string }, E, R>(
+    effect: Effect.Effect<A, E, R>,
+  ): Effect.Effect<A, E, R> =>
+    effect.pipe(
+      Effect.tap((result) =>
+        Effect.sync(() => {
+          session.id = result.sessionId;
+        }),
+      ),
+    );
+
+  return {
+    ...runtime,
+    start: () => captureSession(runtime.start()),
+    loadSession: (sessionId, options) => captureSession(runtime.loadSession(sessionId, options)),
+    resumeSession: (sessionId, options) => captureSession(runtime.resumeSession(sessionId, options)),
+    forkSession: (sessionId, options) => captureSession(runtime.forkSession(sessionId, options)),
+    setMode: (modeId) => {
+      if (session.id === undefined) {
+        return runtime.setMode(modeId);
+      }
+      return applyFxSessionMode({
+        runtime,
+        sessionId: session.id,
+        mode: modeId,
+      }).pipe(Effect.as({}));
+    },
+  };
 }
 
 export function fxPermissionDisposition(
