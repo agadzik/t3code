@@ -29,10 +29,10 @@ Type `$` in the composer to list fx skills from fx's skill folders.
 
 fx offers two composer modes:
 
-| Mode | Behavior |
-| --- | --- |
-| **Supervised** | fx asks before it changes files or runs tools. |
-| **Auto** | fx handles routine actions itself. Anything it still asks about reaches you. |
+| Mode           | Behavior                                                                     |
+| -------------- | ---------------------------------------------------------------------------- |
+| **Supervised** | fx asks before it changes files or runs tools.                               |
+| **Auto**       | fx handles routine actions itself. Anything it still asks about reaches you. |
 
 T3 Code does not offer **Full access**, **Auto-accept edits**, or Plan mode for fx. A thread already set to one of those runs in **Supervised**. Changing the permission mode starts a new fx session for that thread. Newer fx versions save the mode a thread uses as fx's default permission mode, so fx in the terminal starts in it.
 
