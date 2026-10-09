@@ -33,6 +33,8 @@ import {
   toolCallDeniedWriteInput,
 } from "./fixtures/tool_call_denied_write/input.ts";
 import { assertToolCallDeniedWriteFxOutput } from "./fixtures/tool_call_denied_write/fx_output.ts";
+import { fxEarlyCancelFollowupInput } from "./fixtures/fx_early_cancel_followup/input.ts";
+import { assertFxEarlyCancelFollowupOutput } from "./fixtures/fx_early_cancel_followup/fx_output.ts";
 import { runOrchestratorV2ProviderReplayScenario } from "./ProviderReplayHarness.ts";
 import { checkpointWorkspace } from "@t3tools/provider-testing/replayWorkspace";
 import { materializeReplayTranscriptRuntimeInstructions } from "./ReplayRuntimeInstructions.ts";
@@ -194,6 +196,20 @@ const fxCases: ReadonlyArray<
       runtimePolicyOverride: DENIED_WRITE_POLICY,
       expectedAbsentWorkspacePaths: [TOOL_CALL_DENIED_WRITE_TARGET],
       assertOutput: assertToolCallDeniedWriteFxOutput,
+    },
+  ],
+  [
+    "fx_early_cancel_followup",
+    fxEarlyCancelFollowupInput,
+    {
+      driver: fxDriver,
+      transcriptFile: new URL(
+        "./fixtures/fx_early_cancel_followup/fx_transcript.ndjson",
+        import.meta.url,
+      ),
+      modelSelection: FX_MODEL_SELECTION,
+      runtimePolicyOverride: WORKSPACE_NEVER_POLICY,
+      assertOutput: assertFxEarlyCancelFollowupOutput,
     },
   ],
 ];
