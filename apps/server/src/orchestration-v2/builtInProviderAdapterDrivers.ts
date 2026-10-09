@@ -14,6 +14,7 @@ import {
   type CursorAdapterV2DriverEnv,
 } from "@t3tools/provider-cursor/server";
 import { GrokAdapterV2Driver, type GrokAdapterV2DriverEnv } from "@t3tools/provider-grok/server";
+import { FxAdapterV2Driver, type FxAdapterV2DriverEnv } from "@t3tools/provider-fx/server";
 import {
   OpenCodeAdapterV2Driver,
   type OpenCodeAdapterV2DriverEnv,
@@ -27,6 +28,7 @@ export type BuiltInProviderAdapterDriversV2Env =
   | CodexAdapterV2DriverEnv
   | CursorAdapterV2DriverEnv
   | GrokAdapterV2DriverEnv
+  | FxAdapterV2DriverEnv
   | OpenCodeAdapterV2DriverEnv
   | PiAdapterV2DriverEnv;
 
@@ -38,6 +40,7 @@ const BUILT_IN_PROVIDER_ADAPTER_DRIVERS_V2: ReadonlyArray<
   CursorAdapterV2Driver,
   OpenCodeAdapterV2Driver,
   GrokAdapterV2Driver,
+  FxAdapterV2Driver,
   PiAdapterV2Driver,
   AcpRegistryAdapterV2Driver,
 ];

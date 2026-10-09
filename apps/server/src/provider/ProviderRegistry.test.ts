@@ -2723,7 +2723,7 @@ it.layer(
                 // driver's probe *before* it touches the spawner, so the
                 // test environment stays isolated from the dev
                 // machine's PATH.
-                ...disabledDefaultSlots("codex", "claudeAgent", "cursor", "grok", "opencode"),
+                ...disabledDefaultSlots("codex", "claudeAgent", "cursor", "grok", "fx", "opencode"),
                 // Matches the shape the user had in `.t3/dev/settings.json`
                 // when the bug was reported: a custom enabled Codex instance
                 // pointing at a binary the server has to actually spawn.
@@ -2827,7 +2827,7 @@ it.layer(
           decodeServerSettings(
             deepMerge(encodedDefaultServerSettings, {
               providerInstances: {
-                ...disabledDefaultSlots("claudeAgent", "cursor", "grok", "opencode"),
+                ...disabledDefaultSlots("claudeAgent", "cursor", "grok", "fx", "opencode"),
                 [ProviderInstanceId.make("codex")]: {
                   driver: ProviderDriverKind.make("codex"),
                   enabled: true,
@@ -2920,7 +2920,7 @@ it.layer(
           );
           yield* serverSettings.updateSettings({
             providerInstances: {
-              ...disabledDefaultSlots("claudeAgent", "cursor", "grok", "opencode"),
+              ...disabledDefaultSlots("claudeAgent", "cursor", "grok", "fx", "opencode"),
               [ProviderInstanceId.make("codex")]: {
                 driver: ProviderDriverKind.make("codex"),
                 enabled: true,
@@ -2954,7 +2954,7 @@ it.layer(
           decodeServerSettings(
             deepMerge(encodedDefaultServerSettings, {
               providerInstances: {
-                ...disabledDefaultSlots("codex", "claudeAgent", "cursor", "grok", "opencode"),
+                ...disabledDefaultSlots("codex", "claudeAgent", "cursor", "grok", "fx", "opencode"),
                 ghost_main: {
                   driver: "ghostDriver",
                   displayName: "A fork-only driver we don't ship",
@@ -3020,7 +3020,7 @@ it.layer(
           const serverSettings = yield* makeMutableServerSettingsService(
             decodeServerSettings(
               deepMerge(encodedDefaultServerSettings, {
-                providerInstances: disabledDefaultSlots("codex", "grok"),
+                providerInstances: disabledDefaultSlots("codex", "grok", "fx"),
               }),
             ),
           );
@@ -3097,6 +3097,7 @@ it.layer(
               "claudeAgent",
               "codex",
               "cursor",
+              "fx",
               "grok",
               "muse",
               "opencode",
@@ -3108,6 +3109,9 @@ it.layer(
             const museProvider = providers.find((provider) => provider.driver === "muse");
             assert.strictEqual(museProvider?.enabled, false);
             assert.strictEqual(museProvider?.status, "disabled");
+            const fxProvider = providers.find((provider) => provider.driver === "fx");
+            assert.strictEqual(fxProvider?.enabled, false);
+            assert.strictEqual(fxProvider?.status, "disabled");
             assert.strictEqual(cursorSpawned, false);
           }).pipe(Effect.provide(runtimeServices));
         }),

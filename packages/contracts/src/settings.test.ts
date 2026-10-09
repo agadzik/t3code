@@ -816,7 +816,7 @@ describe("provider enabled defaults", () => {
       resolveProviderInstanceEnabled({ driver: ProviderDriverKind.make(driver), config: {} });
     expect(enabledByDefault("codex")).toBe(true);
     expect(enabledByDefault("claudeAgent")).toBe(true);
-    for (const driver of ["cursor", "grok", "muse", "pi", "opencode", "antigravity"]) {
+    for (const driver of ["cursor", "grok", "fx", "muse", "pi", "opencode", "antigravity"]) {
       expect(enabledByDefault(driver)).toBe(false);
     }
   });
