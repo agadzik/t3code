@@ -18,17 +18,18 @@ import * as FileSystem from "effect/FileSystem";
 import * as Layer from "effect/Layer";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
-import { ChildProcessSpawner } from "effect/process";
+import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import type * as EffectAcpSchema from "effect-acp/compat";
 
-import { layerTestProviderHost } from "@t3tools/provider-testing/host";
+import * as TestProviderHost from "@t3tools/provider-testing/TestProviderHost";
 import {
   FX_DRIVER_KIND,
   FxProviderCapabilitiesV2,
   makeFxAdapterV2,
 } from "@t3tools/provider-fx/testing";
 import * as IdAllocator from "@t3tools/provider-core/server/IdAllocator";
-import { ProviderAdapterV2RuntimePolicy } from "@t3tools/provider-core/server/ProviderAdapter";
+import * as McpProviderSessions from "@t3tools/provider-core/server/McpProviderSessions";
+import * as ProviderAdapter from "@t3tools/provider-core/server/ProviderAdapter";
 import {
   decodeAcpReplayTranscript,
   makeAcpReplayCompletenessAssertion,
@@ -46,9 +47,10 @@ const recordedConfigOptions = JSON.parse(
   ),
 ) as ReadonlyArray<EffectAcpSchema.SessionConfigOption>;
 
-const testLayer = layerTestProviderHost().pipe(
+const testLayer = TestProviderHost.layer().pipe(
   Layer.provide(NodeServices.layer),
   Layer.merge(IdAllocator.layer),
+  Layer.merge(McpProviderSessions.layer),
   Layer.merge(NodeServices.layer),
 );
 
@@ -157,7 +159,7 @@ describe("FxAdapterV2", () => {
           model: "anthropic/claude-sonnet-5.5",
           options: input.options ?? [{ id: "effort", value: "high" }],
         },
-        runtimePolicy: ProviderAdapterV2RuntimePolicy.make({
+        runtimePolicy: ProviderAdapter.ProviderAdapterV2RuntimePolicy.make({
           runtimeMode: input.runtimeMode ?? "auto",
           interactionMode: "default",
           cwd: replayDir,

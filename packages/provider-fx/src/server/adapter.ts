@@ -8,9 +8,10 @@ import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as Schema from "effect/Schema";
 import type * as Scope from "effect/Scope";
-import { ChildProcessSpawner } from "effect/process";
+import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 import * as EffectAcpErrors from "effect-acp/errors";
 
+import * as McpProviderSessions from "@t3tools/provider-core/server/McpProviderSessions";
 import * as ProviderHost from "@t3tools/provider-core/server/ProviderHost";
 import { makeAcpNativeLoggerFactory } from "@t3tools/provider-acp/server/nativeLogging";
 import {
@@ -27,7 +28,7 @@ import { mergeProviderInstanceEnvironment } from "@t3tools/provider-core/server/
 import * as AcpSessionRuntime from "@t3tools/provider-acp/server/AcpSessionRuntime";
 import * as ProviderEventLoggers from "@t3tools/provider-core/server/ProviderEventLoggers";
 import * as IdAllocator from "@t3tools/provider-core/server/IdAllocator";
-import * as ProviderContinuationRequests from "@t3tools/provider-core/server/continuationRequests";
+import * as ProviderContinuationRequests from "@t3tools/provider-core/server/ProviderContinuationRequests";
 import * as ProviderAdapter from "@t3tools/provider-core/server/ProviderAdapter";
 import {
   ProviderAdapterDriverCreateError,
@@ -84,16 +85,12 @@ export interface FxAdapterV2Options {
   ) => Effect.Effect<
     AcpSessionRuntime.AcpSessionRuntime["Service"],
     EffectAcpErrors.AcpError,
-    Crypto.Crypto | Scope.Scope
+    ChildProcessSpawner.ChildProcessSpawner | Crypto.Crypto | Scope.Scope
   >;
   readonly assertComplete?: Effect.Effect<void, EffectAcpErrors.AcpError>;
 }
 
-function makeFxAcpAdapterFlavor(
-  options: FxAdapterV2Options & {
-    readonly childProcessSpawner: ChildProcessSpawner.ChildProcessSpawner["Service"];
-  },
-): AcpAdapterV2Flavor {
+function makeFxAcpAdapterFlavor(options: FxAdapterV2Options): AcpAdapterV2Flavor {
   return {
     driver: FX_DRIVER_KIND,
     runtimeHarness: "fx",
@@ -106,7 +103,6 @@ function makeFxAcpAdapterFlavor(
             ...runtimeInput,
             fxSettings: options.settings,
             environment: options.environment,
-            childProcessSpawner: options.childProcessSpawner,
           }))
       )(input).pipe(Effect.map(withFxSessionModeAlwaysWritten)),
     applyModelSelection: ({ runtime, modelSelection }) =>
@@ -131,17 +127,16 @@ function makeFxAcpAdapterFlavor(
   };
 }
 
-export type FxAdapterV2 = ProviderAdapter.ProviderAdapterV2Shape & {
+export type FxAdapterV2 = ProviderAdapter.ProviderAdapterV2["Service"] & {
   readonly currentFxDefaultModel: Effect.Effect<string | undefined>;
 };
 
 export const makeFxAdapterV2 = Effect.fn("makeFxAdapterV2")(function* (
   options: FxAdapterV2Options,
 ) {
-  const childProcessSpawner = yield* ChildProcessSpawner.ChildProcessSpawner;
   const adapter = yield* makeAcpAdapterV2({
     instanceId: options.instanceId,
-    flavor: makeFxAcpAdapterFlavor({ ...options, childProcessSpawner }),
+    flavor: makeFxAcpAdapterFlavor(options),
     selfInvocation: options.selfInvocation,
     ...(options.nativeLogging === undefined ? {} : { nativeLogging: options.nativeLogging }),
     ...(options.continuationRequests === undefined
@@ -161,6 +156,7 @@ export type FxAdapterV2DriverEnv =
   | FileSystem.FileSystem
   | IdAllocator.IdAllocatorV2
   | Path.Path
+  | McpProviderSessions.McpProviderSessions
   | ProviderEventLoggers.ProviderEventLoggers
   | ProviderHost.ProviderHost;
 

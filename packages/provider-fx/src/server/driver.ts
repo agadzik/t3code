@@ -5,9 +5,10 @@ import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
 import * as Ref from "effect/Ref";
 import * as Schema from "effect/Schema";
-import { HttpClient } from "effect/http";
-import { ChildProcessSpawner } from "effect/process";
+import * as HttpClient from "effect/http/HttpClient";
+import * as ChildProcessSpawner from "effect/process/ChildProcessSpawner";
 
+import * as ProviderLatestVersions from "@t3tools/provider-core/server/ProviderLatestVersions";
 import * as ProviderHost from "@t3tools/provider-core/server/ProviderHost";
 import * as ProviderEventLoggers from "@t3tools/provider-core/server/ProviderEventLoggers";
 import { makeUnsupportedFxTextGeneration } from "./textGeneration.ts";
@@ -44,7 +45,7 @@ import { HostProcessEnvironment } from "@t3tools/shared/hostProcess";
 import { resolveSelfInvocation } from "@t3tools/shared/nodeRuntime";
 import { makeAcpNativeLoggerFactory } from "@t3tools/provider-acp/server/nativeLogging";
 import { FX_DRIVER_KIND } from "./acpSupport.ts";
-import * as ProviderContinuationRequests from "@t3tools/provider-core/server/continuationRequests";
+import * as ProviderContinuationRequests from "@t3tools/provider-core/server/ProviderContinuationRequests";
 
 const decodeFxSettings = Schema.decodeSync(FxSettings);
 
@@ -75,6 +76,7 @@ export type FxDriverEnv =
   | Crypto.Crypto
   | FileSystem.FileSystem
   | HttpClient.HttpClient
+  | ProviderLatestVersions.ProviderLatestVersions
   | Path.Path
   | ProviderEventLoggers.ProviderEventLoggers;
 
@@ -90,9 +92,9 @@ export const FxDriver: ProviderDriver<FxSettings, FxDriverEnv> = {
     Effect.gen(function* () {
       const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
       const httpClient = yield* HttpClient.HttpClient;
+      const latestVersions = yield* ProviderLatestVersions.ProviderLatestVersions;
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const host = yield* ProviderHost.ProviderHost;
       const hostEnvironment = yield* HostProcessEnvironment;
       const selfInvocation = yield* resolveSelfInvocation();
       const providerEventLoggers = yield* ProviderEventLoggers.ProviderEventLoggers;
@@ -171,7 +173,7 @@ export const FxDriver: ProviderDriver<FxSettings, FxDriverEnv> = {
         Effect.provideService(ChildProcessSpawner.ChildProcessSpawner, spawner),
       );
 
-      const snapshotSettings = makeProviderSnapshotSettingsSource(effectiveConfig, host.settings);
+      const snapshotSettings = yield* makeProviderSnapshotSettingsSource(effectiveConfig);
       const snapshot = yield* makeManagedServerProvider<ProviderSnapshotSettings<FxSettings>>({
         resolveMaintenance,
         getSettings: snapshotSettings.getSettings,
@@ -188,9 +190,10 @@ export const FxDriver: ProviderDriver<FxSettings, FxDriverEnv> = {
                 maintenanceCapabilities,
                 enableProviderUpdateChecks: settings.enableProviderUpdateChecks,
                 publishSnapshot,
-                httpClient,
               }),
             ),
+            Effect.provideService(HttpClient.HttpClient, httpClient),
+            Effect.provideService(ProviderLatestVersions.ProviderLatestVersions, latestVersions),
           ),
       }).pipe(
         Effect.mapError(

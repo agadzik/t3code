@@ -80,7 +80,6 @@ export interface FxAcpRuntimeInput extends Omit<
   AcpSessionRuntime.AcpSessionRuntimeOptions,
   "authMethodId" | "spawn" | "cancelBehavior"
 > {
-  readonly childProcessSpawner: ChildProcessSpawner.ChildProcessSpawner["Service"];
   readonly fxSettings: Pick<FxSettings, "binaryPath">;
   readonly environment?: NodeJS.ProcessEnv;
 }
@@ -329,10 +328,10 @@ export const makeFxAcpRuntime = (
 ): Effect.Effect<
   AcpSessionRuntime.AcpSessionRuntime["Service"],
   EffectAcpErrors.AcpError,
-  Crypto.Crypto | Scope.Scope
+  ChildProcessSpawner.ChildProcessSpawner | Crypto.Crypto | Scope.Scope
 > =>
   Effect.gen(function* () {
-    const { childProcessSpawner, fxSettings, environment, cwd, ...runtimeOptions } = input;
+    const { fxSettings, environment, cwd, ...runtimeOptions } = input;
     const acpContext = yield* Layer.build(
       AcpSessionRuntime.layer({
         ...runtimeOptions,
@@ -340,9 +339,7 @@ export const makeFxAcpRuntime = (
         spawn: buildFxAcpSpawnInput(fxSettings, cwd, environment),
         cancelBehavior: "wait-for-prompt",
         ownDetachedProcessGroup: true,
-      }).pipe(
-        Layer.provide(Layer.succeed(ChildProcessSpawner.ChildProcessSpawner, childProcessSpawner)),
-      ),
+      }),
     );
     return yield* Effect.service(AcpSessionRuntime.AcpSessionRuntime).pipe(
       Effect.provide(acpContext),
