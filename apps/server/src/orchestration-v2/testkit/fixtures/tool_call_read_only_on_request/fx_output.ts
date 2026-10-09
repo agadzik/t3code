@@ -4,6 +4,7 @@ import type { ProviderReplayTranscript } from "@t3tools/contracts";
 import type { OrchestratorV2ScenarioResult } from "../../OrchestratorScenario.ts";
 import {
   assertBaseProjection,
+  assertNoAcpClientFileOrTerminalRequests,
   assertSemanticProjectionIntegrity,
   assertUserMessagesInclude,
   assertVisibleTurnItemsMirrorLocalTurnItems,
@@ -22,6 +23,7 @@ export function assertToolCallReadOnlyOnRequestFxOutput(
   assertSemanticProjectionIntegrity(projection);
   assertVisibleTurnItemsMirrorLocalTurnItems(projection);
   assertUserMessagesInclude(projection, [TOOL_CALL_WRITE_PROMPT]);
+  assertNoAcpClientFileOrTerminalRequests(transcript);
 
   assert.lengthOf(projection.runtimeRequests, 1, "the write must ask for permission exactly once");
   const request = projection.runtimeRequests[0];

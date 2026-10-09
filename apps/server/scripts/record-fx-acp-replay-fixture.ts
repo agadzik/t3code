@@ -49,6 +49,7 @@ import { materializeFixtureInput } from "../src/orchestration-v2/testkit/fixture
 import { runOrchestratorV2Scenario } from "../src/orchestration-v2/testkit/OrchestratorScenario.ts";
 import * as ProviderReplayHarness from "../src/orchestration-v2/testkit/ProviderReplayHarness.ts";
 import { checkpointWorkspace } from "@t3tools/provider-testing/replayWorkspace";
+import { buildRuntimeInstructions } from "@t3tools/provider-core/server/runtimeInstructions";
 import { ProviderInstanceId } from "@t3tools/contracts";
 
 const wallClock = Clock.Clock.defaultValue();
@@ -195,10 +196,11 @@ function wireToEntries(wire: ReadonlyArray<WireMessage>): {
   return { entries, droppedFrames };
 }
 
+const T3_INSTRUCTIONS_BODY = /<t3_code_instructions>\n[\s\S]*?\n<\/t3_code_instructions>/u;
 const EMAIL = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/giu;
 const TOKEN = /\b(?:sk-|gho_|ghp_|xai-|vercel_)[A-Za-z0-9_-]{8,}\b/gu;
 
-function normalizeOutboundFrame(frame: Record<string, unknown>) {
+function normalizeOutboundFrame(frame: Record<string, unknown>, runtimeInstructions: string) {
   const params = isRecord(frame.params) ? frame.params : undefined;
   if (params === undefined) return frame;
   switch (frame.method) {
@@ -208,7 +210,9 @@ function normalizeOutboundFrame(frame: Record<string, unknown>) {
         params: Object.fromEntries(
           Object.keys(params).map((key) => [
             key,
-            key === "protocolVersion" ? params[key] : "<any>",
+            key === "protocolVersion" || key === "clientCapabilities" || key === "_meta"
+              ? params[key]
+              : "<any>",
           ]),
         ),
       };
@@ -216,8 +220,29 @@ function normalizeOutboundFrame(frame: Record<string, unknown>) {
     case "session/load":
     case "session/resume":
       return { ...frame, params: { ...params, mcpServers: "<any>" } };
-    case "session/prompt":
-      return { ...frame, params: "<any>" };
+    case "session/prompt": {
+      if (!Array.isArray(params.prompt)) return frame;
+      const prompt = params.prompt.filter(
+        (part) => !(isRecord(part) && part.type === "text" && part.text === runtimeInstructions),
+      );
+      return {
+        ...frame,
+        params: {
+          ...params,
+          prompt: prompt.map((part) =>
+            isRecord(part) && typeof part.text === "string"
+              ? {
+                  ...part,
+                  text: part.text.replace(
+                    T3_INSTRUCTIONS_BODY,
+                    "<t3_code_instructions>\n<any>\n</t3_code_instructions>",
+                  ),
+                }
+              : part,
+          ),
+        },
+      };
+    }
     default:
       return frame;
   }
@@ -270,6 +295,7 @@ function normalizeEntries(input: {
   readonly workspace: string;
   readonly home: string;
   readonly user: string;
+  readonly runtimeInstructions: string;
   readonly skillNames: ReadonlyArray<string>;
 }): Array<ProviderReplayEntry> {
   const sessionIds = collectSessionIds(input.entries);
@@ -304,7 +330,7 @@ function normalizeEntries(input: {
     if (entry.type === "runtime_exit" || !isRecord(entry.frame)) return entry;
     const frame =
       entry.type === "expect_outbound"
-        ? normalizeOutboundFrame(entry.frame)
+        ? normalizeOutboundFrame(entry.frame, input.runtimeInstructions)
         : normalizeInboundFrame(entry.frame);
     return {
       ...entry,
@@ -466,6 +492,10 @@ const recordScenario = Effect.fn("recordFxScenario")(function* (fixtureName: str
         home,
         user: process.env.USER ?? "",
         skillNames: userSkillNames(home),
+        runtimeInstructions: buildRuntimeInstructions({
+          harness: "fx",
+          model: variant.modelSelection.model,
+        }),
       }),
       { type: "runtime_exit", status: closedCleanly ? "success" : "cancelled" } as const,
     ],
