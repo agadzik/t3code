@@ -499,6 +499,21 @@ const recordScenario = Effect.fn("recordFxScenario")(function* (fixtureName: str
   };
 
   const outputPath = readArgValues("--out")[0] ?? (yield* path.fromFileUrl(variant.transcriptFile));
+
+  // The live orchestration must satisfy the fixture's assertions before the
+  // recording replaces the committed transcript.
+  const liveFailure = yield* Effect.try(() => variant.assertOutput(result, transcript)).pipe(
+    Effect.flip,
+    Effect.option,
+  );
+  if (liveFailure._tag === "Some") {
+    yield* Console.log(
+      `Live orchestration failed ${fixtureName} assertions; left ${outputPath} unchanged:`,
+      liveFailure.value,
+    );
+    return yield* Effect.die(liveFailure.value);
+  }
+
   const { entries: transcriptEntries, ...header } = transcript;
   yield* fs.writeFileString(
     outputPath,
@@ -509,14 +524,6 @@ const recordScenario = Effect.fn("recordFxScenario")(function* (fixtureName: str
     ].join("\n"),
   );
   yield* Console.log(`Wrote ${transcriptEntries.length} fx ACP replay entries to ${outputPath}`);
-
-  const liveFailure = yield* Effect.try(() => variant.assertOutput(result, transcript)).pipe(
-    Effect.flip,
-    Effect.option,
-  );
-  if (liveFailure._tag === "Some") {
-    yield* Console.log(`Live orchestration failed ${fixtureName} assertions:`, liveFailure.value);
-  }
 });
 
 const probeEarlyCancel = Effect.fn("probeFxEarlyCancel")(function* () {
