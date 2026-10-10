@@ -1,4 +1,4 @@
-import { HostProcessEnvironment } from "@t3tools/shared/hostProcess";
+import * as HostProcess from "@t3tools/shared/HostProcess";
 import { resolveSelfInvocation, type SelfInvocation } from "@t3tools/shared/nodeRuntime";
 import { type OrchestrationV2ProviderCapabilities } from "@t3tools/contracts";
 import { FxSettings } from "../settings.ts";
@@ -166,7 +166,7 @@ export const FxAdapterV2Driver: ProviderAdapterDriver<FxSettings, FxAdapterV2Dri
   defaultConfig: (): FxSettings => DEFAULT_FX_SETTINGS,
   create: Effect.fn("FxAdapterV2Driver.create")(
     function* (input: ProviderAdapterDriverCreateInput<FxSettings>) {
-      const hostEnvironment = yield* HostProcessEnvironment;
+      const hostEnvironment = yield* HostProcess.Environment;
       const selfInvocation = yield* resolveSelfInvocation();
       const providerEventLoggers = yield* ProviderEventLoggers.ProviderEventLoggers;
       const continuationRequests = yield* ProviderContinuationRequests.ProviderContinuationRequests;
@@ -174,7 +174,7 @@ export const FxAdapterV2Driver: ProviderAdapterDriver<FxSettings, FxAdapterV2Dri
       return yield* makeFxAdapterV2({
         instanceId: input.instanceId,
         settings: { ...input.config, enabled: input.enabled },
-        environment: mergeProviderInstanceEnvironment(input.environment, hostEnvironment),
+        environment: yield* mergeProviderInstanceEnvironment(input.environment, hostEnvironment),
         selfInvocation,
         currentFxDefaultModel: Effect.succeed(undefined),
         continuationRequests,

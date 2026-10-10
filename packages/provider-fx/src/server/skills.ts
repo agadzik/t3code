@@ -8,9 +8,8 @@
  *
  * @module provider-fx/server/skills
  */
-import * as NodeOS from "node:os";
-
 import type { ServerProviderSkill } from "@t3tools/contracts";
+import * as HostProcess from "@t3tools/shared/HostProcess";
 import * as Effect from "effect/Effect";
 import * as FileSystem from "effect/FileSystem";
 import * as Path from "effect/Path";
@@ -62,11 +61,6 @@ function parseFxSkillFrontmatter(contents: string): {
   } catch {
     return {};
   }
-}
-
-function resolveFxUserHome(environment: NodeJS.ProcessEnv): string {
-  const home = environment.HOME?.trim();
-  return home && home.length > 0 ? home : NodeOS.homedir();
 }
 
 function workspaceSkillDirectories(
@@ -160,7 +154,7 @@ export const discoverFxSkills = Effect.fn("discoverFxSkills")(function* (input: 
 }): Effect.fn.Return<ReadonlyArray<ServerProviderSkill>, never, FileSystem.FileSystem | Path.Path> {
   const path = yield* Path.Path;
   const environment = input.environment ?? process.env;
-  const home = path.resolve(resolveFxUserHome(environment));
+  const home = path.resolve(environment.HOME?.trim() || (yield* HostProcess.HomeDirectory));
   const roots: Array<{ directory: string; scope: "project" | "user" }> = [
     ...(input.cwd === undefined
       ? []

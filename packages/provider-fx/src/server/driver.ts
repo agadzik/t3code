@@ -41,7 +41,7 @@ import {
   type ProviderSnapshotSettings,
 } from "@t3tools/provider-core/server/snapshotSettings";
 import type { ServerProviderDraft } from "@t3tools/provider-core/server/snapshotProbe";
-import { HostProcessEnvironment } from "@t3tools/shared/hostProcess";
+import * as HostProcess from "@t3tools/shared/HostProcess";
 import { resolveSelfInvocation } from "@t3tools/shared/nodeRuntime";
 import { makeAcpNativeLoggerFactory } from "@t3tools/provider-acp/server/nativeLogging";
 import { FX_DRIVER_KIND } from "./acpSupport.ts";
@@ -95,12 +95,12 @@ export const FxDriver: ProviderDriver<FxSettings, FxDriverEnv> = {
       const latestVersions = yield* ProviderLatestVersions.ProviderLatestVersions;
       const fileSystem = yield* FileSystem.FileSystem;
       const path = yield* Path.Path;
-      const hostEnvironment = yield* HostProcessEnvironment;
+      const hostEnvironment = yield* HostProcess.Environment;
       const selfInvocation = yield* resolveSelfInvocation();
       const providerEventLoggers = yield* ProviderEventLoggers.ProviderEventLoggers;
       const continuationRequests = yield* ProviderContinuationRequests.ProviderContinuationRequests;
       const makeNativeLogger = yield* makeAcpNativeLoggerFactory();
-      const processEnv = mergeProviderInstanceEnvironment(environment);
+      const processEnv = yield* mergeProviderInstanceEnvironment(environment);
       const continuationIdentity = defaultProviderContinuationIdentity({
         driverKind: FX_DRIVER_KIND,
         instanceId,
@@ -130,7 +130,7 @@ export const FxDriver: ProviderDriver<FxSettings, FxDriverEnv> = {
       const orchestrationAdapter = yield* makeFxAdapterV2({
         instanceId,
         settings: effectiveConfig,
-        environment: mergeProviderInstanceEnvironment(environment, hostEnvironment),
+        environment: yield* mergeProviderInstanceEnvironment(environment, hostEnvironment),
         selfInvocation,
         currentFxDefaultModel: Ref.get(currentFxDefaultModelRef),
         continuationRequests,

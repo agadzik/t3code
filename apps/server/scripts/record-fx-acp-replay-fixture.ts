@@ -17,7 +17,7 @@ import * as NodePath from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { type ProviderReplayEntry } from "@t3tools/contracts";
 import { FxSettings } from "@t3tools/provider-fx/settings";
-import { HostProcessEnvironment } from "@t3tools/shared/hostProcess";
+import * as HostProcess from "@t3tools/shared/HostProcess";
 import { resolveSelfInvocation } from "@t3tools/shared/nodeRuntime";
 import * as Clock from "effect/Clock";
 import * as Console from "effect/Console";
@@ -377,7 +377,7 @@ const recordScenario = Effect.fn("recordFxScenario")(function* (fixtureName: str
   const settings = { ...DEFAULT_FX_SETTINGS, binaryPath: process.env.T3_FX_BIN ?? "fx" };
   const layerRegistry = ProviderAdapterRegistry.layerFromAdaptersEffect(
     Effect.gen(function* () {
-      const environment = yield* HostProcessEnvironment;
+      const environment = yield* HostProcess.Environment;
       const adapter = yield* makeFxAdapterV2({
         instanceId: FX_DEFAULT_INSTANCE_ID,
         settings,
